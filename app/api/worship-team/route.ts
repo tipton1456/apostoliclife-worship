@@ -80,12 +80,6 @@ export async function GET() {
         planTitle: null,
         team: [],
         message: "No matching future plan found.",
-        plansChecked: plans.data?.map((p: any) => ({
-          id: p.id,
-          title: p.attributes?.title,
-          dates: p.attributes?.dates,
-          sort_date: p.attributes?.sort_date,
-        })),
       });
     }
 
@@ -97,22 +91,15 @@ export async function GET() {
       `${BASE}/service_types/${serviceTypeId}/plans/${planId}/team_members?filter=not_declined,not_deleted,not_archived&per_page=100`
     );
 
-    const worshipTeamName = process.env.PCO_WORSHIP_TEAM_NAME || "Worship Team";
-
     const assigned = members.data
-      .filter((m: any) => {
-        return (
-          m.attributes?.team_name?.toLowerCase() ===
-          worshipTeamName.toLowerCase()
-        );
-      })
       .map((m: any) => ({
         slot: getSlot(m.attributes?.team_position_name || ""),
         name: m.attributes?.name || "",
         position: m.attributes?.team_position_name || "",
-        image: null,
+        image: m.attributes?.photo_thumbnail || null,
         status: m.attributes?.status || "",
       }))
+      .filter((m: any) => m.slot >= 1 && m.slot <= 8)
       .sort((a: any, b: any) => a.slot - b.slot);
 
     const grid = Array.from({ length: 8 }, (_, i) => {
