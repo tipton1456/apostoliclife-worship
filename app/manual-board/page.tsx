@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 type TeamMember = {
@@ -18,7 +18,7 @@ function photoFileName(name: string) {
     .replace(/^-|-$/g, "");
 }
 
-export default function ManualBoardPage() {
+function ManualBoardContent() {
   const searchParams = useSearchParams();
 
   const serviceTypeId = searchParams.get("serviceTypeId");
@@ -37,16 +37,11 @@ export default function ManualBoardPage() {
   }, [serviceTypeId, planId]);
 
   if (!data) {
-    return (
-      <div className="text-white p-10">
-        Loading...
-      </div>
-    );
+    return <div className="text-white p-10">Loading...</div>;
   }
 
   return (
     <main className="w-screen h-screen overflow-hidden bg-black text-white p-6">
-
       <h1 className="text-5xl font-black text-center uppercase mb-2 text-[#7bbc07]">
         Apostolic Worship Mic Board
       </h1>
@@ -95,5 +90,13 @@ export default function ManualBoardPage() {
         ))}
       </div>
     </main>
+  );
+}
+
+export default function ManualBoardPage() {
+  return (
+    <Suspense fallback={<div className="text-white p-10">Loading...</div>}>
+      <ManualBoardContent />
+    </Suspense>
   );
 }
