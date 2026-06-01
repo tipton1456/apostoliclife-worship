@@ -78,6 +78,7 @@ export async function GET() {
         serviceName,
         date,
         planTitle: null,
+        planId: null,
         team: [],
         message: "No matching future plan found.",
       });
@@ -99,28 +100,15 @@ export async function GET() {
         image: m.attributes?.photo_thumbnail || null,
         status: m.attributes?.status || "",
       }))
-      .filter((m: any) => m.slot >= 1 && m.slot <= 8)
+      .filter((m: any) => m.slot >= 1 && m.slot <= 8 && m.name)
       .sort((a: any, b: any) => a.slot - b.slot);
-
-    const grid = Array.from({ length: 8 }, (_, i) => {
-      const slot = i + 1;
-      return (
-        assigned.find((p: any) => p.slot === slot) || {
-          slot,
-          name: "",
-          position: `W${slot}`,
-          image: null,
-          status: "",
-        }
-      );
-    });
 
     return NextResponse.json({
       serviceName,
       date,
       planTitle,
       planId,
-      team: grid,
+      team: assigned,
     });
   } catch (error: any) {
     return NextResponse.json(

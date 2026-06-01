@@ -18,14 +18,14 @@ export default async function Home() {
   const data = await getWorshipTeam();
 
   return (
-    <main className="min-h-screen bg-black text-white p-8">
+    <main className="w-screen h-screen overflow-hidden bg-black text-white p-6">
       <script
         dangerouslySetInnerHTML={{
           __html: `setTimeout(() => window.location.reload(), 1800000);`,
         }}
       />
 
-      <h1 className="text-5xl font-bold text-center uppercase mb-2">
+     <h1 className="text-6xl font-black text-center uppercase mb-2 text-[#7bbc07] tracking-wide">
         Apostolic Worship Mic Board
       </h1>
 
@@ -33,7 +33,12 @@ export default async function Home() {
         {data.serviceName} - {data.planTitle}
       </h2>
 
-      <div className="grid grid-cols-8 gap-4">
+     <div
+  		className="grid gap-4 justify-center"
+  		style={{
+    		gridTemplateColumns: `repeat(${data.team.length}, minmax(0, 220px))`,
+  		}}
+>
         {data.team.map((person: TeamMember) => (
           <div
             key={person.slot}
@@ -51,11 +56,11 @@ export default async function Home() {
               )}
             </div>
 
-            <div className="p-4 min-h-24 flex items-center justify-center text-2xl font-bold">
-              {person.name || "Unassigned"}
-            </div>
+			<div className="p-4 min-h-24 flex items-center justify-center text-3xl font-medium leading-tight">
+			  {person.name || "Unassigned"}
+			</div>
 
-            <div className="p-3 bg-neutral-950 text-lg text-gray-300 min-h-16 flex items-center justify-center">
+           <div className="p-3 bg-neutral-950 text-xl text-gray-300 min-h-16 flex items-center justify-center font-semibold">
               {person.position}
             </div>
           </div>
