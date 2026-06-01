@@ -5,7 +5,9 @@ const BASE = "https://api.planningcenteronline.com/services/v2";
 function authHeader() {
   return (
     "Basic " +
-    Buffer.from(`${process.env.PCO_CLIENT_ID}:${process.env.PCO_SECRET}`).toString("base64")
+    Buffer.from(
+      `${process.env.PCO_CLIENT_ID}:${process.env.PCO_SECRET}`
+    ).toString("base64")
   );
 }
 
@@ -62,10 +64,14 @@ export async function GET() {
     const date = nextSundayDate();
 
     const plans = await pcoFetch(
-      `${BASE}/service_types/${serviceTypeId}/plans?where[dates]=${date}&per_page=10`
+      `${BASE}/service_types/${serviceTypeId}/plans?filter=future&order=sort_date&per_page=25`
     );
 
-    const plan = plans.data?.[0];
+    const plan = plans.data?.find((p: any) => {
+      const dates = p.attributes?.dates || "";
+      const sortDate = p.attributes?.sort_date || "";
+      return dates.includes(date) || sortDate.startsWith(date);
+    });
 
     if (!plan) {
       return NextResponse.json({
@@ -73,12 +79,19 @@ export async function GET() {
         date,
         planTitle: null,
         team: [],
-        message: "No plan found.",
+        message: "No matching future plan found.",
+        plansChecked: plans.data?.map((p: any) => ({
+          id: p.id,
+          title: p.attributes?.title,
+          dates: p.attributes?.dates,
+          sort_date: p.attributes?.sort_date,
+        })),
       });
     }
 
     const planId = plan.id;
-    const planTitle = plan.attributes?.title || plan.attributes?.dates;
+    const planTitle =
+      plan.attributes?.title || plan.attributes?.dates || "Untitled Plan";
 
     const members = await pcoFetch(
       `${BASE}/service_types/${serviceTypeId}/plans/${planId}/team_members?filter=not_declined,not_deleted,not_archived&per_page=100`
