@@ -41,7 +41,7 @@ function ManualBoardContent() {
   }
 
   return (
-    <main className="w-screen h-screen overflow-hidden bg-black text-white p-6">
+    <main className="w-screen h-screen max-w-[1920px] max-h-[1080px] mx-auto overflow-hidden bg-black text-white p-6">
       <h1 className="text-5xl font-black text-center uppercase mb-2 text-[#7bbc07]">
         Apostolic Worship Mic Board
       </h1>
@@ -50,18 +50,18 @@ function ManualBoardContent() {
         {data.planTitle}
       </h2>
 
-      <div
-        className="grid gap-4 justify-center"
-        style={{
-          gridTemplateColumns: `repeat(${data.team.length}, 180px)`,
-        }}
-      >
+		<div
+		  className="grid gap-3 w-full"
+		  style={{
+		    gridTemplateColumns: `repeat(${data.team.length}, minmax(0, 1fr))`,
+		  }}
+		>
         {data.team.map((person: TeamMember) => (
           <div
             key={person.slot}
-            className="w-[180px] border border-gray-700 rounded-xl overflow-hidden text-center bg-neutral-900"
+           className="w-full border border-gray-700 rounded-xl overflow-hidden text-center bg-neutral-900"
           >
-            <div className="w-[180px] h-[405px] bg-neutral-800 overflow-hidden">
+            <div className="w-full h-[620px] bg-neutral-800 overflow-hidden">
               <img
                 src={`/team-photos/${photoFileName(person.name)}.jpg`}
                 alt={person.name}

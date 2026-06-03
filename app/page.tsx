@@ -25,7 +25,7 @@ export default async function Home() {
   const data = await getWorshipTeam();
 
   return (
-    <main className="w-screen h-screen overflow-hidden bg-black text-white p-6">
+   <main className="w-screen h-screen max-w-[1920px] max-h-[1080px] mx-auto overflow-hidden bg-black text-white p-6">
 	
      <h1 className="text-6xl font-black text-center uppercase mb-2 text-[#7bbc07] tracking-wide">
         Apostolic Worship Mic Board
@@ -35,18 +35,18 @@ export default async function Home() {
         {data.serviceName} - {data.planTitle}
       </h2>
 
-     <div
-  		className="grid gap-4 justify-center"
-		style={{
-		  gridTemplateColumns: `repeat(${data.team.length}, 180px)`,
-		}}
+		 <div
+		  className="grid gap-3 w-full"
+		  style={{
+		    gridTemplateColumns: `repeat(${data.team.length}, minmax(0, 1fr))`,
+		  }}
 		>
         {data.team.map((person: TeamMember) => (
           <div
 			  key={person.slot}
-			  className="w-[180px] border border-gray-700 rounded-xl overflow-hidden text-center bg-neutral-900"
+			  className="w-full border border-gray-700 rounded-xl overflow-hidden text-center bg-neutral-900"
 			>
-            <div className="w-[160px] h-[360px] bg-neutral-800 overflow-hidden">
+            <div className="w-full h-[620px] bg-neutral-800 overflow-hidden">
               {person.image ? (
 			<img
 			  src={`/team-photos/${photoFileName(person.name)}.jpg`}
