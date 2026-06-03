@@ -51,7 +51,7 @@ export default async function Home() {
 			<img
 			  src={`/team-photos/${photoFileName(person.name)}.jpg`}
 			  alt={person.name}
-			  className="w-full h-full object-cover object-center translate-x-2"
+			  className="w-full h-full object-cover object-top translate-x-2"
 			/>
               ) : (
                 <span className="text-gray-500 text-xl">Photo</span>
