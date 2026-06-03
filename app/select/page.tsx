@@ -38,7 +38,7 @@ export default function SelectPage() {
         Select Service
       </h1>
 
-      <div className="max-w-5xl mx-auto">
+      <div className="w-full max-w-[1920px] mx-auto">
         <div className="grid grid-cols-2 gap-6 mb-8">
           <div>
             <label className="block mb-2 text-xl text-center">
@@ -84,9 +84,9 @@ export default function SelectPage() {
 
         {selectedServiceType && selectedPlan && (
           <iframe
-            src={`/manual-board?serviceTypeId=${selectedServiceType}&planId=${selectedPlan}`}
-            className="w-full h-[700px] border border-gray-700 rounded-xl"
-          />
+			  src={`/manual-board?serviceTypeId=${selectedServiceType}&planId=${selectedPlan}`}
+			  className="w-full h-[1080px] border border-gray-700 rounded-xl"
+			/>
         )}
       </div>
     </main>
