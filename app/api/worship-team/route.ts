@@ -2,12 +2,21 @@ import { NextResponse } from "next/server";
 
 const BASE = "https://api.planningcenteronline.com/services/v2";
 
+function envValue(name: string) {
+  return process.env[name]?.trim().replace(/^['"]|['"]$/g, "");
+}
+
 function authHeader() {
+  const clientId = envValue("PCO_CLIENT_ID");
+  const secret = envValue("PCO_SECRET");
+
+  if (!clientId || !secret) {
+    throw new Error("Missing PCO_CLIENT_ID or PCO_SECRET");
+  }
+
   return (
     "Basic " +
-    Buffer.from(
-      `${process.env.PCO_CLIENT_ID}:${process.env.PCO_SECRET}`
-    ).toString("base64")
+    Buffer.from(`${clientId}:${secret}`).toString("base64")
   );
 }
 
@@ -21,12 +30,19 @@ function getServiceType() {
   const now = centralNow();
   const isSunday = now.getDay() === 0;
   const isPM = isSunday && now.getHours() >= 12;
+  const serviceTypeId = isPM
+    ? envValue("PCO_SUNDAY_PM_SERVICE_TYPE_ID")
+    : envValue("PCO_SUNDAY_AM_SERVICE_TYPE_ID");
+
+  if (!serviceTypeId) {
+    throw new Error(
+      `Missing ${isPM ? "PCO_SUNDAY_PM_SERVICE_TYPE_ID" : "PCO_SUNDAY_AM_SERVICE_TYPE_ID"}`
+    );
+  }
 
   return {
     serviceName: isPM ? "Sunday PM" : "Sunday AM",
-    serviceTypeId: isPM
-      ? process.env.PCO_SUNDAY_PM_SERVICE_TYPE_ID
-      : process.env.PCO_SUNDAY_AM_SERVICE_TYPE_ID,
+    serviceTypeId,
   };
 }
 
