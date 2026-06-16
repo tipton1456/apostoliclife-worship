@@ -42,7 +42,10 @@ function cardStateClass(channel: ChannelState | null, isOnline: boolean) {
   if (!isOnline || !channel) return "border-gray-700";
   if (channel.mute === true) return "border-red-500 shadow-[0_0_24px_rgba(239,68,68,0.22)]";
   if (channel.hasSignal === false) return "border-yellow-400 shadow-[0_0_20px_rgba(250,204,21,0.16)]";
-  return "border-green-500/70";
+  const signal = Math.min(100, Math.max(0, channel.signalPercent || 0));
+  if (signal >= 70) return "border-green-300 shadow-[0_0_30px_rgba(34,197,94,0.36)]";
+  if (signal >= 35) return "border-green-400 shadow-[0_0_24px_rgba(34,197,94,0.26)]";
+  return "border-green-500/70 shadow-[0_0_18px_rgba(34,197,94,0.16)]";
 }
 
 function fillSlots(team: TeamMember[]) {
