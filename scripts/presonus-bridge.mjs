@@ -1,9 +1,13 @@
-import { createServer } from "http";
+import { readFileSync } from "fs";
+import { createServer as createHttpServer } from "http";
+import { createServer as createHttpsServer } from "https";
 import { Client } from "@featherbear/presonus-studiolive-api";
 
 const mixerHost = process.env.PRESONUS_HOST || "192.168.1.123";
 const mixerPort = Number(process.env.PRESONUS_PORT || 53000);
 const bridgePort = Number(process.env.PRESONUS_BRIDGE_PORT || 4310);
+const bridgeCert = process.env.PRESONUS_BRIDGE_CERT;
+const bridgeKey = process.env.PRESONUS_BRIDGE_KEY;
 const defaultChannelCount = Number(process.env.PRESONUS_CHANNELS || 8);
 const signalThreshold = Number(process.env.PRESONUS_SIGNAL_THRESHOLD || 3);
 const signalScale = Number(process.env.PRESONUS_SIGNAL_SCALE || 32);
@@ -109,7 +113,7 @@ function readChannels(count) {
   });
 }
 
-const server = createServer(async (req, res) => {
+const handleRequest = async (req, res) => {
   if (req.method === "OPTIONS") {
     json(res, 204, {});
     return;
@@ -154,10 +158,22 @@ const server = createServer(async (req, res) => {
       error: error instanceof Error ? error.message : "Unknown bridge error",
     });
   }
-});
+};
+
+const server =
+  bridgeCert && bridgeKey
+    ? createHttpsServer(
+        {
+          cert: readFileSync(bridgeCert),
+          key: readFileSync(bridgeKey),
+        },
+        handleRequest
+      )
+    : createHttpServer(handleRequest);
 
 server.listen(bridgePort, () => {
-  console.log(`PreSonus bridge listening on http://localhost:${bridgePort}`);
+  const protocol = bridgeCert && bridgeKey ? "https" : "http";
+  console.log(`PreSonus bridge listening on ${protocol}://localhost:${bridgePort}`);
   console.log(`Connecting to StudioLive at ${mixerHost}:${mixerPort}`);
 });
 

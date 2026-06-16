@@ -16,8 +16,13 @@ type BridgeResponse = {
   channels?: ChannelState[];
 };
 
-const BRIDGE_URL =
-  process.env.NEXT_PUBLIC_PRESONUS_BRIDGE_URL || "http://localhost:4310";
+const BRIDGE_URLS = (
+  process.env.NEXT_PUBLIC_PRESONUS_BRIDGE_URL ||
+  "https://iBatMac.local:4310,http://localhost:4310"
+)
+  .split(",")
+  .map((url) => url.trim())
+  .filter(Boolean);
 
 export default function PresonusChannelStatus({ slot }: { slot: number }) {
   const [channel, setChannel] = useState<ChannelState | null>(null);
@@ -28,13 +33,25 @@ export default function PresonusChannelStatus({ slot }: { slot: number }) {
 
     async function loadChannel() {
       try {
-        const res = await fetch(`${BRIDGE_URL}/channels?count=8`, {
-          cache: "no-store",
-        });
+        let data: BridgeResponse | null = null;
 
-        if (!res.ok) throw new Error("Bridge unavailable");
+        for (const bridgeUrl of BRIDGE_URLS) {
+          try {
+            const res = await fetch(`${bridgeUrl}/channels?count=8`, {
+              cache: "no-store",
+            });
 
-        const data = (await res.json()) as BridgeResponse;
+            if (!res.ok) continue;
+
+            data = (await res.json()) as BridgeResponse;
+            break;
+          } catch {
+            continue;
+          }
+        }
+
+        if (!data) throw new Error("Bridge unavailable");
+
         const nextChannel =
           data.channels?.find((item) => item.slot === slot) || null;
 
