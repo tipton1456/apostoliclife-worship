@@ -5,7 +5,8 @@ const mixerHost = process.env.PRESONUS_HOST || "192.168.1.123";
 const mixerPort = Number(process.env.PRESONUS_PORT || 53000);
 const bridgePort = Number(process.env.PRESONUS_BRIDGE_PORT || 4310);
 const defaultChannelCount = Number(process.env.PRESONUS_CHANNELS || 8);
-const signalThreshold = Number(process.env.PRESONUS_SIGNAL_THRESHOLD || 8);
+const signalThreshold = Number(process.env.PRESONUS_SIGNAL_THRESHOLD || 3);
+const signalScale = Number(process.env.PRESONUS_SIGNAL_SCALE || 32);
 const historySize = Number(process.env.PRESONUS_HISTORY_SIZE || 24);
 
 const client = new Client(
@@ -73,7 +74,7 @@ client.on("meter", (data) => {
 });
 
 function normalizeSignal(value) {
-  return Math.min(100, Math.round((value / 512) * 100));
+  return Math.min(100, Math.round((value / signalScale) * 100));
 }
 
 function readChannels(count) {
@@ -82,6 +83,7 @@ function readChannels(count) {
     const channelSelector = selector(channel);
     const signal = inputSignals.get(channel) ?? 0;
     const history = signalHistory.get(channel) || [];
+    const recentPeak = Math.max(signal, ...history);
 
     return {
       slot: channel,
@@ -90,7 +92,8 @@ function readChannels(count) {
       level: client.getLevel(channelSelector),
       signal,
       signalPercent: normalizeSignal(signal),
-      hasSignal: signal > signalThreshold,
+      recentPeak,
+      hasSignal: recentPeak > signalThreshold,
       signalHistory: history.map(normalizeSignal),
     };
   });
