@@ -40,7 +40,7 @@ try {
     const level = client.getLevel(selector);
 
     console.log(
-      `W${channel} -> channel ${channel}: mute=${formatValue(mute)} level=${formatValue(level)}`
+      `Slot ${channel} -> channel ${channel}: mute=${formatValue(mute)} level=${formatValue(level)}`
     );
   }
 } finally {

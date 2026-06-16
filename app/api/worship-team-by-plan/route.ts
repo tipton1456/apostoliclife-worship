@@ -41,6 +41,11 @@ function getSlot(positionName: string) {
   return match ? Number(match[1]) : 999;
 }
 
+function displayPosition(positionName: string) {
+  const slot = getSlot(positionName);
+  return slot === 999 ? positionName : String(slot);
+}
+
 export async function GET(req: NextRequest) {
   try {
     const serviceTypeId = req.nextUrl.searchParams.get("serviceTypeId");
@@ -67,13 +72,17 @@ export async function GET(req: NextRequest) {
     );
 
     const assigned = members.data
-      .map((m: any) => ({
-        slot: getSlot(m.attributes?.team_position_name || ""),
-        name: m.attributes?.name || "",
-        position: m.attributes?.team_position_name || "",
-        image: m.attributes?.photo_thumbnail || null,
-        status: m.attributes?.status || "",
-      }))
+      .map((m: any) => {
+        const positionName = m.attributes?.team_position_name || "";
+
+        return {
+          slot: getSlot(positionName),
+          name: m.attributes?.name || "",
+          position: displayPosition(positionName),
+          image: m.attributes?.photo_thumbnail || null,
+          status: m.attributes?.status || "",
+        };
+      })
       .filter((m: any) => m.slot >= 1 && m.slot <= 8 && m.name)
       .sort((a: any, b: any) => a.slot - b.slot);
 

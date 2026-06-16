@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import PresonusChannelStatus from "./components/PresonusChannelStatus";
 
 type TeamMember = {
   slot: number;
@@ -56,9 +57,9 @@ export default async function Home() {
   }
 
   return (
-   <main className="w-screen h-screen max-w-[1920px] max-h-[1080px] mx-auto overflow-hidden bg-black text-white p-6">
+   <main className="w-screen h-screen max-w-[1920px] max-h-[1080px] mx-auto overflow-hidden bg-black text-white p-4">
 		 <div
-		  className="grid gap-3 w-full"
+		  className="grid gap-3 w-full h-full"
 		  style={{
 		    gridTemplateColumns: `repeat(${team.length}, minmax(0, 1fr))`,
 		  }}
@@ -66,9 +67,9 @@ export default async function Home() {
         {team.map((person: TeamMember) => (
           <div
 			  key={person.slot}
-			  className="w-full border border-gray-700 rounded-xl overflow-hidden text-center bg-neutral-900"
+			  className="w-full h-full min-h-0 border border-gray-700 rounded-xl overflow-hidden text-center bg-neutral-900 flex flex-col"
 			>
-            <div className="w-full h-[620px] bg-neutral-800 overflow-hidden">
+            <div className="w-full flex-1 min-h-0 bg-neutral-800 overflow-hidden">
               {person.image ? (
 			<img
 			  src={`/team-photos/${photoFileName(person.name)}.jpg`}
@@ -80,14 +81,14 @@ export default async function Home() {
               )}
             </div>
 
-			<div className="p-4 min-h-24 flex items-center justify-center text-3xl font-medium leading-tight">
+			<div className="px-3 py-2 min-h-14 flex items-center justify-center text-xl font-semibold leading-tight">
 			  {person.name || "Unassigned"}
 			</div>
 
-			<div className="p-3 bg-neutral-950 text-xl text-gray-300 min-h-16 flex flex-col items-center justify-center font-semibold">
+			<div className="px-3 py-2 bg-neutral-950 text-sm text-gray-300 min-h-14 flex flex-col items-center justify-center font-semibold">
 			  <div>{person.position}</div>
 			
-			  <div className="mt-2 text-2xl">
+			  <div className="mt-1 text-base">
 			    {person.status === "C" ? (
 			      <span className="text-green-500">●</span>
 			    ) : person.status === "D" ? (
@@ -97,6 +98,7 @@ export default async function Home() {
 			    )}
 			  </div>
 			</div>
+            <PresonusChannelStatus slot={person.slot} />
           </div>
         ))}
       </div>

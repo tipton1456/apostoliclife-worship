@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import PresonusChannelStatus from "../components/PresonusChannelStatus";
 
 type TeamMember = {
   slot: number;
@@ -41,17 +42,17 @@ function ManualBoardContent() {
   }
 
   return (
-    <main className="w-screen h-screen max-w-[1920px] max-h-[1080px] mx-auto overflow-hidden bg-black text-white p-6">
+    <main className="w-screen h-screen max-w-[1920px] max-h-[1080px] mx-auto overflow-hidden bg-black text-white p-4 flex flex-col">
       <h1 className="text-5xl font-black text-center uppercase mb-2 text-[#7bbc07]">
         Apostolic Worship Mic Board
       </h1>
 
-      <h2 className="text-2xl text-center mb-10 text-gray-300">
+      <h2 className="text-xl text-center mb-4 text-gray-300">
         {data.planTitle}
       </h2>
 
 		<div
-		  className="grid gap-3 w-full"
+		  className="grid gap-3 w-full flex-1 min-h-0"
 		  style={{
 		    gridTemplateColumns: `repeat(${data.team.length}, minmax(0, 1fr))`,
 		  }}
@@ -59,24 +60,24 @@ function ManualBoardContent() {
         {data.team.map((person: TeamMember) => (
           <div
             key={person.slot}
-           className="w-full border border-gray-700 rounded-xl overflow-hidden text-center bg-neutral-900"
+           className="w-full h-full min-h-0 border border-gray-700 rounded-xl overflow-hidden text-center bg-neutral-900 flex flex-col"
           >
-            <div className="w-full h-[620px] bg-neutral-800 overflow-hidden">
+            <div className="w-full flex-1 min-h-0 bg-neutral-800 overflow-hidden">
               <img
                 src={`/team-photos/${photoFileName(person.name)}.jpg`}
                 alt={person.name}
-                className="w-full h-full object-cover object-center"
+                className="w-full h-full object-cover object-top"
               />
             </div>
 
-            <div className="p-4 min-h-24 flex items-center justify-center text-3xl font-medium leading-tight">
+            <div className="px-3 py-2 min-h-14 flex items-center justify-center text-xl font-semibold leading-tight">
               {person.name}
             </div>
 
-            <div className="p-3 bg-neutral-950 text-xl text-gray-300 min-h-16 flex flex-col items-center justify-center font-semibold">
+            <div className="px-3 py-2 bg-neutral-950 text-sm text-gray-300 min-h-14 flex flex-col items-center justify-center font-semibold">
               <div>{person.position}</div>
 
-              <div className="mt-2 text-2xl">
+              <div className="mt-1 text-base">
                 {person.status === "C" ? (
                   <span className="text-green-500">●</span>
                 ) : person.status === "D" ? (
@@ -86,6 +87,7 @@ function ManualBoardContent() {
                 )}
               </div>
             </div>
+            <PresonusChannelStatus slot={person.slot} />
           </div>
         ))}
       </div>
