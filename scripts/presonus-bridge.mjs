@@ -84,12 +84,22 @@ function readChannels(count) {
     const signal = inputSignals.get(channel) ?? 0;
     const history = signalHistory.get(channel) || [];
     const recentPeak = Math.max(signal, ...history);
+    let mute = null;
+    let level = null;
+
+    try {
+      mute = client.getMute(channelSelector);
+      level = client.getLevel(channelSelector);
+    } catch {
+      mute = null;
+      level = null;
+    }
 
     return {
       slot: channel,
       channel,
-      mute: client.getMute(channelSelector),
-      level: client.getLevel(channelSelector),
+      mute,
+      level,
       signal,
       signalPercent: normalizeSignal(signal),
       recentPeak,
