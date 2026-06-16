@@ -57,15 +57,6 @@ export default async function Home() {
 
   return (
    <main className="w-screen h-screen max-w-[1920px] max-h-[1080px] mx-auto overflow-hidden bg-black text-white p-6">
-	
-     <h1 className="text-6xl font-black text-center uppercase mb-2 text-[#7bbc07] tracking-wide">
-        Apostolic Worship Mic Board
-      </h1>
-
-      <h2 className="text-2xl text-center mb-10 text-gray-300">
-        {data.serviceName} - {data.planTitle}
-      </h2>
-
 		 <div
 		  className="grid gap-3 w-full"
 		  style={{
