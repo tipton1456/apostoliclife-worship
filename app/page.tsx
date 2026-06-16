@@ -81,14 +81,12 @@ export default async function Home() {
               )}
             </div>
 
-			<div className="px-3 py-2 min-h-14 flex items-center justify-center text-xl font-semibold leading-tight">
-			  {person.name || "Unassigned"}
-			</div>
-
-			<div className="px-3 py-2 bg-neutral-950 text-sm text-gray-300 min-h-14 flex flex-col items-center justify-center font-semibold">
-			  <div>{person.position}</div>
-			
-			  <div className="mt-1 text-base">
+			<div className="min-h-12 bg-neutral-950 px-3 py-2 text-gray-100">
+			  <div className="flex items-center justify-center gap-2 text-base font-semibold leading-tight">
+			    <span className="tabular-nums text-gray-400">{person.position}</span>
+			    <span className="text-gray-600">|</span>
+			    <span className="min-w-0 truncate">{person.name || "Unassigned"}</span>
+			    <span className="text-gray-600">|</span>
 			    {person.status === "C" ? (
 			      <span className="text-green-500">●</span>
 			    ) : person.status === "D" ? (

@@ -5,6 +5,8 @@ const mixerHost = process.env.PRESONUS_HOST || "192.168.1.123";
 const mixerPort = Number(process.env.PRESONUS_PORT || 53000);
 const bridgePort = Number(process.env.PRESONUS_BRIDGE_PORT || 4310);
 const defaultChannelCount = Number(process.env.PRESONUS_CHANNELS || 8);
+const signalThreshold = Number(process.env.PRESONUS_SIGNAL_THRESHOLD || 8);
+const historySize = Number(process.env.PRESONUS_HISTORY_SIZE || 24);
 
 const client = new Client(
   { host: mixerHost, port: mixerPort },
@@ -16,6 +18,8 @@ const client = new Client(
 
 let connectPromise;
 let connectedAt = null;
+const inputSignals = new Map();
+const signalHistory = new Map();
 
 function selector(channel) {
   return { type: "LINE", channel };
@@ -38,6 +42,9 @@ async function ensureConnected() {
   if (!connectPromise) {
     connectPromise = client.connect().then(() => {
       connectedAt = new Date().toISOString();
+      client.meterSubscribe().catch((error) => {
+        console.error("Unable to subscribe to StudioLive meters:", error.message);
+      });
       return client;
     });
   }
@@ -45,16 +52,46 @@ async function ensureConnected() {
   return connectPromise;
 }
 
+client.on("meter", (data) => {
+  const inputMeters = data[0];
+  if (!Array.isArray(inputMeters)) return;
+
+  inputMeters.forEach((rawValue, index) => {
+    const channel = index + 1;
+    const signal = Math.max(0, Number(rawValue) || 0);
+    const history = signalHistory.get(channel) || [];
+
+    inputSignals.set(channel, signal);
+    history.push(signal);
+
+    if (history.length > historySize) {
+      history.splice(0, history.length - historySize);
+    }
+
+    signalHistory.set(channel, history);
+  });
+});
+
+function normalizeSignal(value) {
+  return Math.min(100, Math.round((value / 512) * 100));
+}
+
 function readChannels(count) {
   return Array.from({ length: count }, (_, index) => {
     const channel = index + 1;
     const channelSelector = selector(channel);
+    const signal = inputSignals.get(channel) ?? 0;
+    const history = signalHistory.get(channel) || [];
 
     return {
       slot: channel,
       channel,
       mute: client.getMute(channelSelector),
       level: client.getLevel(channelSelector),
+      signal,
+      signalPercent: normalizeSignal(signal),
+      hasSignal: signal > signalThreshold,
+      signalHistory: history.map(normalizeSignal),
     };
   });
 }
