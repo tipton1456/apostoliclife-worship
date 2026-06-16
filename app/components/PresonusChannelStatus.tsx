@@ -1,8 +1,4 @@
-"use client";
-
-import { useEffect, useState } from "react";
-
-type ChannelState = {
+export type ChannelState = {
   slot: number;
   channel: number;
   mute: boolean | null;
@@ -12,70 +8,13 @@ type ChannelState = {
   signalHistory?: number[];
 };
 
-type BridgeResponse = {
-  channels?: ChannelState[];
-};
-
-const BRIDGE_URLS = (
-  process.env.NEXT_PUBLIC_PRESONUS_BRIDGE_URL ||
-  "https://iBatMac.local:4310,http://localhost:4310"
-)
-  .split(",")
-  .map((url) => url.trim())
-  .filter(Boolean);
-
-export default function PresonusChannelStatus({ slot }: { slot: number }) {
-  const [channel, setChannel] = useState<ChannelState | null>(null);
-  const [isOnline, setIsOnline] = useState(false);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadChannel() {
-      try {
-        let data: BridgeResponse | null = null;
-
-        for (const bridgeUrl of BRIDGE_URLS) {
-          try {
-            const res = await fetch(`${bridgeUrl}/channels?count=8`, {
-              cache: "no-store",
-            });
-
-            if (!res.ok) continue;
-
-            data = (await res.json()) as BridgeResponse;
-            break;
-          } catch {
-            continue;
-          }
-        }
-
-        if (!data) throw new Error("Bridge unavailable");
-
-        const nextChannel =
-          data.channels?.find((item) => item.slot === slot) || null;
-
-        if (isMounted) {
-          setChannel(nextChannel);
-          setIsOnline(Boolean(nextChannel));
-        }
-      } catch {
-        if (isMounted) {
-          setIsOnline(false);
-          setChannel(null);
-        }
-      }
-    }
-
-    loadChannel();
-    const interval = window.setInterval(loadChannel, 1500);
-
-    return () => {
-      isMounted = false;
-      window.clearInterval(interval);
-    };
-  }, [slot]);
-
+export default function PresonusChannelStatus({
+  channel,
+  isOnline,
+}: {
+  channel: ChannelState | null;
+  isOnline: boolean;
+}) {
   if (!isOnline || !channel) {
     return (
       <div className="border-t border-gray-800 bg-black px-3 py-2 text-xs font-semibold uppercase text-gray-500">
