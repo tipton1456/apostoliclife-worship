@@ -24,12 +24,28 @@ function photoFileName(name: string) {
     .replace(/^-|-$/g, "");
 }
 
+function protocolForHost(host: string | null) {
+  if (!host) return "https";
+
+  const hostname = host.split(":")[0];
+  const isLocalHost =
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname.endsWith(".local") ||
+    hostname.startsWith("192.168.") ||
+    hostname.startsWith("10.") ||
+    /^172\.(1[6-9]|2\d|3[0-1])\./.test(hostname);
+
+  return isLocalHost ? "http" : "https";
+}
+
 async function getWorshipTeam() {
   const requestHeaders = await headers();
   const host = requestHeaders.get("host");
-  const protocol = host?.includes("localhost") ? "http" : "https";
+  const protocol = protocolForHost(host);
+  const localSiteUrl = host ? `${protocol}://${host}` : "";
   const siteUrl =
-    process.env.NEXT_PUBLIC_SITE_URL || (host ? `${protocol}://${host}` : "");
+    protocol === "http" ? localSiteUrl : process.env.NEXT_PUBLIC_SITE_URL || localSiteUrl;
 
   const res = await fetch(`${siteUrl}/api/worship-team`, {
     cache: "no-store",
