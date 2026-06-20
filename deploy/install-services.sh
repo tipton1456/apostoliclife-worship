@@ -37,7 +37,6 @@ sed \
 sed \
   -e "s|__INSTALL_DIR__|$APP_DIR|g" \
   -e "s|__NODE_BIN__|$NODE_BIN|g" \
-  -e "s|__NPM_BIN__|$NPM_BIN|g" \
   "$DEPLOY_DIR/run-micboard.sh" >"$RUN_MICBOARD_SCRIPT"
 
 chmod +x "$RUN_BRIDGE_SCRIPT" "$RUN_MICBOARD_SCRIPT"
