@@ -6,14 +6,30 @@
 	<string>com.apostoliclife.micboard</string>
 	<key>ProgramArguments</key>
 	<array>
+		<string>/bin/bash</string>
 		<string>__RUN_MICBOARD_SCRIPT__</string>
 	</array>
 	<key>WorkingDirectory</key>
 	<string>__INSTALL_DIR__</string>
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>HOME</key>
+		<string>__HOME__</string>
+		<key>USER</key>
+		<string>__USER__</string>
+		<key>PATH</key>
+		<string>__PATH__</string>
+		<key>NODE_ENV</key>
+		<string>production</string>
+	</dict>
+	<key>LimitLoadToSessionType</key>
+	<string>Aqua</string>
 	<key>RunAtLoad</key>
 	<true/>
 	<key>KeepAlive</key>
 	<true/>
+	<key>ThrottleInterval</key>
+	<integer>10</integer>
 	<key>StandardOutPath</key>
 	<string>__LOG_DIR__/micboard.launchd.log</string>
 	<key>StandardErrorPath</key>

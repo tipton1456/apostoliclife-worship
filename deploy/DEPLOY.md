@@ -70,13 +70,13 @@ cp .env.example .env.local
 
 ### 1. Copy the project
 
-Put the folder anywhere permanent, for example:
+Put the folder here:
 
 ```bash
 ~/apostoliclife-worship
 ```
 
-Avoid keeping it only on the Desktop if you can. A stable path like `~/apostoliclife-worship` is better for background services.
+**Do not install background services from the Desktop.** macOS blocks LaunchAgents from accessing projects in `~/Desktop`, which causes `Operation not permitted` errors in the service logs.
 
 ### 2. Copy environment settings
 

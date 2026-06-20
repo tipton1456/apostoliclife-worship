@@ -1,9 +1,9 @@
 #!/bin/bash
 set -eo pipefail
 
-APP_DIR="__INSTALL_DIR__"
-NODE_BIN="__NODE_BIN__"
-LOG_DIR="__LOG_DIR__"
+APP_DIR="/Users/stevetipton/Desktop/apostoliclife-worship"
+NODE_BIN="/usr/local/bin/node"
+LOG_DIR="/Users/stevetipton/Library/Logs/apostoliclife-worship"
 
 mkdir -p "$LOG_DIR"
 cd "$APP_DIR"

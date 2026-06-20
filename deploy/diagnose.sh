@@ -84,10 +84,30 @@ fi
 
 echo ""
 echo "Recent mic board errors:"
-if [[ -f "$LOG_DIR/micboard.error.log" ]]; then
-  tail -n 20 "$LOG_DIR/micboard.error.log"
+for log in \
+  "$LOG_DIR/micboard.launchd.error.log" \
+  "$LOG_DIR/micboard.error.log"; do
+  if [[ -f "$log" ]]; then
+    echo "--- $log ---"
+    tail -n 15 "$log"
+  fi
+done
+
+echo ""
+echo "Recent bridge errors:"
+for log in \
+  "$LOG_DIR/presonus-bridge.launchd.error.log" \
+  "$LOG_DIR/presonus-bridge.error.log"; do
+  if [[ -f "$log" ]]; then
+    echo "--- $log ---"
+    tail -n 15 "$log"
+  fi
+done
+
+if [[ -x "$APP_DIR/deploy/bin/run-micboard.sh" ]]; then
+  check ok "Generated mic board service script exists"
 else
-  echo "(no error log yet)"
+  check fail "Generated service scripts missing. Run ./deploy/install-services.sh"
 fi
 
 echo ""
