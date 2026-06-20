@@ -58,7 +58,7 @@ export default async function Home() {
 
   return (
    <main className="w-screen h-screen max-w-[1920px] max-h-[1080px] mx-auto overflow-hidden bg-black text-white p-4">
-      <MicBoardGrid team={team} />
+      <MicBoardGrid team={team} teamRefreshUrl="/api/worship-team" />
     </main>
   );
 }

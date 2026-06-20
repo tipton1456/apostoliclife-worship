@@ -37,7 +37,10 @@ function ManualBoardContent() {
       </h2>
 
       <div className="flex-1 min-h-0">
-        <MicBoardGrid team={(data.team || []) as TeamMember[]} />
+        <MicBoardGrid
+          team={(data.team || []) as TeamMember[]}
+          teamRefreshUrl={`/api/worship-team-by-plan?serviceTypeId=${serviceTypeId}&planId=${planId}`}
+        />
       </div>
     </main>
   );

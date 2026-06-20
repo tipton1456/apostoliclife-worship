@@ -15,7 +15,21 @@ type BridgeResponse = {
   channels?: ChannelState[];
 };
 
+type WorshipTeamResponse = {
+  team?: TeamMember[];
+};
+
 const SLOT_COUNT = 8;
+const TEAM_REFRESH_MS = 30 * 60 * 1000;
+const CENTRAL_TIME_ZONE = "America/Chicago";
+
+function isSundayCentral() {
+  const centralNow = new Date(
+    new Date().toLocaleString("en-US", { timeZone: CENTRAL_TIME_ZONE })
+  );
+
+  return centralNow.getDay() === 0;
+}
 const BRIDGE_URLS = (
   process.env.NEXT_PUBLIC_PRESONUS_BRIDGE_URL ||
   "http://localhost:4310"
@@ -65,10 +79,51 @@ function fillSlots(team: TeamMember[]) {
   });
 }
 
-export default function MicBoardGrid({ team }: { team: TeamMember[] }) {
+export default function MicBoardGrid({
+  team: initialTeam,
+  teamRefreshUrl,
+}: {
+  team: TeamMember[];
+  teamRefreshUrl?: string;
+}) {
+  const [team, setTeam] = useState(initialTeam);
   const slots = useMemo(() => fillSlots(team), [team]);
   const [channels, setChannels] = useState<ChannelState[]>([]);
   const [isOnline, setIsOnline] = useState(false);
+
+  useEffect(() => {
+    setTeam(initialTeam);
+  }, [initialTeam]);
+
+  useEffect(() => {
+    if (!teamRefreshUrl || !isSundayCentral()) return;
+
+    const url = teamRefreshUrl;
+    let isMounted = true;
+
+    async function loadTeam() {
+      if (!isSundayCentral()) return;
+
+      try {
+        const res = await fetch(url, { cache: "no-store" });
+        if (!res.ok || !isMounted) return;
+
+        const data = (await res.json()) as WorshipTeamResponse;
+        if (Array.isArray(data.team)) {
+          setTeam(data.team);
+        }
+      } catch {
+        // Keep the current team if refresh fails.
+      }
+    }
+
+    const interval = window.setInterval(loadTeam, TEAM_REFRESH_MS);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(interval);
+    };
+  }, [teamRefreshUrl]);
 
   useEffect(() => {
     let isMounted = true;
