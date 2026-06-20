@@ -1,0 +1,31 @@
+Quick start on the new Mac
+==========================
+
+This project is NOT on iCloud. Use Git.
+
+1. Install Git on the new Mac:
+
+   xcode-select --install
+
+2. Install Node.js 22+:
+
+   https://nodejs.org/
+
+3. Clone the repository:
+
+   git clone https://github.com/tipton1456/apostoliclife-worship.git ~/apostoliclife-worship
+
+4. Copy .env.local from the old Mac (Git does not sync secrets)
+
+5. Run:
+
+   cd ~/apostoliclife-worship
+   chmod +x deploy/*.sh
+   ./deploy/install.sh
+
+6. Open http://localhost:3000
+
+USB fallback:
+- Use micboard-deploy.tar.gz if Git is not ready yet
+
+Full details: deploy/DEPLOY.md

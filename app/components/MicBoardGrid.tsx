@@ -18,7 +18,7 @@ type BridgeResponse = {
 const SLOT_COUNT = 8;
 const BRIDGE_URLS = (
   process.env.NEXT_PUBLIC_PRESONUS_BRIDGE_URL ||
-  "https://iBatMac.local:4310,http://localhost:4310"
+  "http://localhost:4310"
 )
   .split(",")
   .map((url) => url.trim())

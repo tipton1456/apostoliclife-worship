@@ -1,7 +1,30 @@
-import { readFileSync } from "fs";
+import { existsSync, readFileSync } from "fs";
+import { dirname, join } from "path";
+import { fileURLToPath } from "url";
 import { createServer as createHttpServer } from "http";
 import { createServer as createHttpsServer } from "https";
 import { Client } from "@featherbear/presonus-studiolive-api";
+
+function loadEnvFile(filename) {
+  const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+  const envPath = join(root, filename);
+  if (!existsSync(envPath)) return;
+
+  for (const line of readFileSync(envPath, "utf8").split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+
+    const index = trimmed.indexOf("=");
+    if (index === -1) continue;
+
+    const key = trimmed.slice(0, index).trim();
+    const value = trimmed.slice(index + 1).trim().replace(/^['"]|['"]$/g, "");
+    if (!(key in process.env)) process.env[key] = value;
+  }
+}
+
+loadEnvFile(".env.local");
+loadEnvFile(".env");
 
 const mixerHost = process.env.PRESONUS_HOST || "192.168.1.123";
 const mixerPort = Number(process.env.PRESONUS_PORT || 53000);
