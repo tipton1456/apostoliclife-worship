@@ -45,6 +45,18 @@ function photoFileName(name: string) {
     .replace(/^-|-$/g, "");
 }
 
+function firstName(name: string) {
+  const trimmed = name.trim();
+  if (!trimmed) return "";
+  return trimmed.split(/\s+/)[0];
+}
+
+function personPhotoSrc(name: string) {
+  const trimmed = name.trim();
+  if (!trimmed) return "/team-photos/unassigned.jpg";
+  return `/team-photos/${photoFileName(trimmed)}.jpg`;
+}
+
 function planningStatusClass(status: string) {
   if (status === "C") return "text-green-500";
   if (status === "D") return "text-red-500";
@@ -180,7 +192,8 @@ export default function MicBoardGrid({
         {slots.map((person) => {
           const channel =
             channels.find((item) => item.slot === person.slot) || null;
-          const hasPhoto = Boolean(person.image && person.name);
+          const displayName = firstName(person.name) || "Unassigned";
+          const photoSrc = personPhotoSrc(person.name);
 
           return (
             <div
@@ -191,24 +204,18 @@ export default function MicBoardGrid({
               )}`}
             >
               <div className="flex min-h-0 flex-1 items-start justify-center overflow-hidden bg-neutral-800">
-                {hasPhoto ? (
-                  <img
-                    src={`/team-photos/${photoFileName(person.name)}.jpg`}
-                    alt={person.name}
-                    className="h-full w-full translate-x-2 object-cover object-top"
-                  />
-                ) : (
-                  <span className="mt-10 text-xl text-gray-600">Unassigned</span>
-                )}
+                <img
+                  src={photoSrc}
+                  alt={displayName}
+                  className="h-full w-full translate-x-2 object-cover object-top"
+                />
               </div>
 
               <div className="min-h-12 bg-neutral-950 px-3 py-2 text-gray-100">
                 <div className="flex items-center justify-center gap-2 text-base font-semibold leading-tight">
                   <span className="tabular-nums text-gray-400">{person.position}</span>
                   <span className="text-gray-600">|</span>
-                  <span className="min-w-0 truncate">
-                    {person.name || "Unassigned"}
-                  </span>
+                  <span className="min-w-0 truncate">{displayName}</span>
                   <span className="text-gray-600">|</span>
                   <span className={planningStatusClass(person.status)}>●</span>
                 </div>
