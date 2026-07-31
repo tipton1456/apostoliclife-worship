@@ -8,6 +8,7 @@ import {
   useState,
   type FormEvent,
 } from "react";
+import PdfJsViewer from "./PdfJsViewer";
 
 type FileKind =
   | "image"
@@ -215,10 +216,24 @@ export default function DocsPage() {
     [documents, selectedId]
   );
 
-  // Load signed view URL when selection changes
+  const viewHeaders = useMemo(() => {
+    const headers: Record<string, string> = {};
+    if (accessCode.trim()) headers["x-big-top-code"] = accessCode.trim();
+    return headers;
+  }, [accessCode]);
+
+  // Load signed view URL for non-PDF files (PDFs use PDF.js + same-origin proxy)
   useEffect(() => {
     if (!selectedDoc || !accessReady) {
       setViewUrl(null);
+      return;
+    }
+
+    // PDFs are rendered by PdfJsViewer via /api/docs/view — skip signed URL
+    if ((selectedDoc.kind || "file") === "pdf") {
+      setViewUrl(null);
+      setViewLoading(false);
+      setViewError(null);
       return;
     }
 
@@ -579,28 +594,43 @@ export default function DocsPage() {
               )}
 
               <div className="flex-1 min-h-0 relative bg-[#111]">
-                {viewLoading && (
-                  <div className="absolute inset-0 flex items-center justify-center text-gray-400 z-10">
-                    Loading preview…
-                  </div>
-                )}
-                {viewError && (
-                  <div className="absolute inset-0 flex items-center justify-center p-6 z-10">
-                    <div className="max-w-md text-center space-y-3">
-                      <p className="text-red-300 text-sm">{viewError}</p>
-                      <button
-                        type="button"
-                        onClick={handleDownload}
-                        className="rounded-xl bg-[#7bbc07] text-black font-bold px-4 py-2 text-sm"
-                      >
-                        Download instead
-                      </button>
-                    </div>
-                  </div>
-                )}
+                {(selectedDoc.kind || "file") === "pdf" ? (
+                  <PdfJsViewer
+                    key={selectedDoc.id}
+                    src={`/api/docs/view?id=${encodeURIComponent(selectedDoc.id)}`}
+                    headers={viewHeaders}
+                    title={selectedDoc.title}
+                  />
+                ) : (
+                  <>
+                    {viewLoading && (
+                      <div className="absolute inset-0 flex items-center justify-center text-gray-400 z-10">
+                        Loading preview…
+                      </div>
+                    )}
+                    {viewError && (
+                      <div className="absolute inset-0 flex items-center justify-center p-6 z-10">
+                        <div className="max-w-md text-center space-y-3">
+                          <p className="text-red-300 text-sm">{viewError}</p>
+                          <button
+                            type="button"
+                            onClick={handleDownload}
+                            className="rounded-xl bg-[#7bbc07] text-black font-bold px-4 py-2 text-sm"
+                          >
+                            Download instead
+                          </button>
+                        </div>
+                      </div>
+                    )}
 
-                {!viewLoading && !viewError && viewUrl && (
-                  <DocViewer doc={selectedDoc} url={viewUrl} onDownload={handleDownload} />
+                    {!viewLoading && !viewError && viewUrl && (
+                      <DocViewer
+                        doc={selectedDoc}
+                        url={viewUrl}
+                        onDownload={handleDownload}
+                      />
+                    )}
+                  </>
                 )}
               </div>
             </>
@@ -632,16 +662,6 @@ function DocViewer({
           className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
         />
       </div>
-    );
-  }
-
-  if (kind === "pdf") {
-    return (
-      <iframe
-        title={doc.title}
-        src={`${url}#view=FitH`}
-        className="h-full w-full border-0 bg-neutral-900"
-      />
     );
   }
 
