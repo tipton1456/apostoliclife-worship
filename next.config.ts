@@ -1,7 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Native / heavy PDF thumbnail deps must not be bundled by Turbopack
+  serverExternalPackages: [
+    "@napi-rs/canvas",
+    "unpdf",
+  ],
 };
 
 export default nextConfig;
