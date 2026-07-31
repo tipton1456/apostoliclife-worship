@@ -1,64 +1,62 @@
-import { headers } from "next/headers";
-import MicBoardGrid, { type TeamMember } from "./components/MicBoardGrid";
+import Image from "next/image";
+import Link from "next/link";
 
-type WorshipTeamResponse = {
-  serviceName?: string;
-  planTitle?: string | null;
-  team?: TeamMember[];
-  error?: string;
-  message?: string;
-};
+const menuItems = [
+  {
+    href: "/big-top",
+    title: "Big Top Event Check In",
+    description: "Scan tickets and check in attendees for the Back to School Bash",
+  },
+  {
+    href: "/mic-board",
+    title: "Main Mic Board",
+    description: "Live worship team mic board for the current service",
+  },
+  {
+    href: "/select",
+    title: "Select Mic Board",
+    description: "Choose a service type and plan, then open that mic board",
+  },
+] as const;
 
-function protocolForHost(host: string | null) {
-  if (!host) return "https";
-
-  const hostname = host.split(":")[0];
-  const isLocalHost =
-    hostname === "localhost" ||
-    hostname === "127.0.0.1" ||
-    hostname.endsWith(".local") ||
-    hostname.startsWith("192.168.") ||
-    hostname.startsWith("10.") ||
-    /^172\.(1[6-9]|2\d|3[0-1])\./.test(hostname);
-
-  return isLocalHost ? "http" : "https";
-}
-
-async function getWorshipTeam() {
-  const requestHeaders = await headers();
-  const host = requestHeaders.get("host");
-  const protocol = protocolForHost(host);
-  const localSiteUrl = host ? `${protocol}://${host}` : "";
-  const siteUrl =
-    protocol === "http" ? localSiteUrl : process.env.NEXT_PUBLIC_SITE_URL || localSiteUrl;
-
-  const res = await fetch(`${siteUrl}/api/worship-team`, {
-    cache: "no-store",
-  });
-
-  return res.json() as Promise<WorshipTeamResponse>;
-}
-
-export default async function Home() {
-  const data = await getWorshipTeam();
-  const team = Array.isArray(data.team) ? data.team : [];
-  const statusMessage = data.error || data.message || null;
-
-  if (statusMessage) {
-    return (
-      <main className="w-screen h-screen max-w-[1920px] max-h-[1080px] mx-auto overflow-hidden bg-black text-white p-6 flex flex-col items-center justify-center text-center">
-        <h1 className="text-6xl font-black uppercase mb-6 text-[#7bbc07] tracking-wide">
-          Apostolic Worship Mic Board
-        </h1>
-        <div className="text-3xl font-semibold mb-3">Unable to load worship team</div>
-        <p className="text-xl text-gray-300 max-w-3xl">{statusMessage}</p>
-      </main>
-    );
-  }
-
+export default function LandingPage() {
   return (
-   <main className="w-screen h-screen max-w-[1920px] max-h-[1080px] mx-auto overflow-hidden bg-black text-white p-4">
-      <MicBoardGrid team={team} teamRefreshUrl="/api/worship-team" />
+    <main className="min-h-screen bg-black text-white flex flex-col items-center justify-center px-6 py-12">
+      <div className="w-full max-w-2xl flex flex-col items-center text-center">
+        <Image
+          src="/apostolic-worship-icon.png"
+          alt="Apostolic Worship"
+          width={160}
+          height={160}
+          priority
+          className="mb-6 rounded-2xl shadow-lg shadow-[#7bbc07]/20"
+        />
+
+        <p className="text-[#7bbc07] font-semibold tracking-wide uppercase text-sm mb-2">
+          Apostolic Life
+        </p>
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-black uppercase tracking-tight mb-3">
+          Apostolic Worship Tech Landing Page
+        </h1>
+        <p className="text-gray-400 text-base sm:text-lg mb-10 max-w-lg">
+          Tools for service production, mic boards, and event check-in.
+        </p>
+
+        <nav className="w-full space-y-3" aria-label="Main menu">
+          {menuItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="block w-full rounded-2xl border border-white/15 bg-white/5 hover:bg-[#7bbc07]/15 hover:border-[#7bbc07]/50 transition-colors px-6 py-5 text-left"
+            >
+              <div className="text-xl sm:text-2xl font-bold text-white group-hover:text-[#7bbc07]">
+                {item.title}
+              </div>
+              <div className="text-sm text-gray-400 mt-1">{item.description}</div>
+            </Link>
+          ))}
+        </nav>
+      </div>
     </main>
   );
 }

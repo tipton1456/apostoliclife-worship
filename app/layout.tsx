@@ -8,8 +8,15 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: "Apostolic Worship Mic Board",
-  description: "Worship Team Display",
+  title: {
+    default: "Apostolic Worship Tech Portal",
+    template: "%s · Apostolic Worship Tech Portal",
+  },
+  description: "Apostolic Worship Tech Portal",
+  icons: {
+    icon: "/apostolic-worship-icon.png",
+    apple: "/apostolic-worship-icon.png",
+  },
 };
 
 export default function RootLayout({
