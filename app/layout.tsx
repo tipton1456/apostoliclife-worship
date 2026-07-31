@@ -14,8 +14,13 @@ export const metadata: Metadata = {
   },
   description: "Apostolic Worship Tech Portal",
   icons: {
-    icon: "/apostolic-worship-icon.png",
-    apple: "/apostolic-worship-icon.png",
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/apostolic-worship-icon.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/apostolic-worship-icon.png", sizes: "180x180" }],
   },
 };
 
