@@ -3,9 +3,15 @@ import {
   requestHasAccess,
   unauthorizedResponse,
 } from "@/lib/big-top/auth";
-import { mergeCsvIntoStore } from "@/lib/big-top/csv";
+import { parseCsv, rowToAttendee } from "@/lib/big-top/csv";
 import { ensureSeededStore } from "@/lib/big-top/seed";
-import { writeStore, statsForStore, storageBackend } from "@/lib/big-top/store";
+import {
+  insertNewAttendees,
+  readStore,
+  statsForStore,
+  storageBackend,
+} from "@/lib/big-top/store";
+import type { AttendeeRecord } from "@/lib/big-top/types";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -62,16 +68,47 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { store } = await ensureSeededStore();
-    const merge = mergeCsvIntoStore(store, csvText);
-    await writeStore(store);
+    await ensureSeededStore();
+    const existing = await readStore();
+    const rows = parseCsv(csvText);
+    const nowIso = new Date().toISOString();
+    let invalidRows = 0;
+    let skippedExisting = 0;
+    const toInsert: AttendeeRecord[] = [];
+
+    for (const row of rows) {
+      const attendee = rowToAttendee(row, nowIso);
+      if (!attendee) {
+        invalidRows++;
+        continue;
+      }
+      if (existing.attendees[attendee.confirmationCode]) {
+        skippedExisting++;
+        continue;
+      }
+      // de-dupe within the same file
+      if (toInsert.some((a) => a.confirmationCode === attendee.confirmationCode)) {
+        skippedExisting++;
+        continue;
+      }
+      toInsert.push(attendee);
+    }
+
+    const added = await insertNewAttendees(toInsert);
+    const store = await readStore();
 
     return NextResponse.json({
       ok: true,
-      merge,
+      merge: {
+        added,
+        skippedExisting,
+        totalInFile: rows.length,
+        totalInStore: Object.keys(store.attendees).length,
+        invalidRows,
+      },
       stats: statsForStore(store),
       storage: storageBackend(),
-      message: `Added ${merge.added} new attendee(s). Skipped ${merge.skippedExisting} existing. Store total: ${merge.totalInStore}.`,
+      message: `Added ${added} new attendee(s). Skipped ${skippedExisting} existing. Store total: ${Object.keys(store.attendees).length}.`,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";

@@ -1,10 +1,18 @@
 import { promises as fs } from "fs";
 import path from "path";
+import { hasSupabaseAdminConfig } from "@/lib/supabase/admin";
 import {
-  BIG_TOP_EVENT_ID,
-  BIG_TOP_EVENT_NAME,
-  type BigTopStore,
+  emptyStore,
+  normalizeStore,
+} from "./persistence-shared";
+import type {
+  AttendeeRecord,
+  BigTopStore,
+  DayCheckIn,
+  EventDay,
 } from "./types";
+
+export { emptyStore, normalizeStore } from "./persistence-shared";
 
 const DATA_DIR = path.join(process.cwd(), "data", "tithely");
 const STORE_PATH = path.join(DATA_DIR, "big-top-store.json");
@@ -19,34 +27,21 @@ export function getSeedCsvPath() {
   return SEED_CSV_PATH;
 }
 
-export function emptyStore(): BigTopStore {
-  return {
-    eventId: BIG_TOP_EVENT_ID,
-    eventName: BIG_TOP_EVENT_NAME,
-    updatedAt: new Date().toISOString(),
-    attendees: {},
-  };
+export type StorageBackend = "supabase" | "blob" | "filesystem";
+
+/** Prefer Supabase (shared church DB), then Blob, then local JSON. */
+export function storageBackend(): StorageBackend {
+  if (hasSupabaseAdminConfig()) return "supabase";
+  if (process.env.BLOB_READ_WRITE_TOKEN?.trim()) return "blob";
+  return "filesystem";
 }
 
-export function normalizeStore(parsed: Partial<BigTopStore> | null): BigTopStore {
-  if (!parsed || typeof parsed !== "object" || !parsed.attendees) {
-    return emptyStore();
-  }
-  return {
-    eventId: parsed.eventId || BIG_TOP_EVENT_ID,
-    eventName: parsed.eventName || BIG_TOP_EVENT_NAME,
-    updatedAt: parsed.updatedAt || new Date().toISOString(),
-    attendees: parsed.attendees,
-  };
+export function useSupabaseStorage(): boolean {
+  return storageBackend() === "supabase";
 }
 
-/** Prefer Vercel Blob when token is present (production on Vercel). */
 export function useBlobStorage(): boolean {
-  return Boolean(process.env.BLOB_READ_WRITE_TOKEN?.trim());
-}
-
-export function storageBackend(): "blob" | "filesystem" {
-  return useBlobStorage() ? "blob" : "filesystem";
+  return storageBackend() === "blob";
 }
 
 async function ensureDataDir() {
@@ -122,16 +117,119 @@ async function writeStoreToBlob(store: BigTopStore): Promise<void> {
 }
 
 export async function readStore(): Promise<BigTopStore> {
-  if (useBlobStorage()) {
+  const backend = storageBackend();
+  if (backend === "supabase") {
+    const { readStoreFromSupabase } = await import("./supabase-store");
+    return readStoreFromSupabase();
+  }
+  if (backend === "blob") {
     return readStoreFromBlob();
   }
   return readStoreFromFilesystem();
 }
 
+/**
+ * Full store write — used by filesystem/blob backends.
+ * For Supabase, prefer insertNewAttendees + setDayCheckIn (avoids race overwrites).
+ * If called on Supabase, only inserts new attendees and upserts check-ins present on each attendee
+ * without deleting other concurrent check-ins for different people.
+ */
 export async function writeStore(store: BigTopStore): Promise<void> {
-  if (useBlobStorage()) {
+  const backend = storageBackend();
+
+  if (backend === "supabase") {
+    // Supabase path: only insert new attendees; sync check-ins per person via upserts
+    const {
+      insertNewAttendeesToSupabase,
+      setDayCheckInInSupabase,
+      readStoreFromSupabase,
+    } = await import("./supabase-store");
+
+    const existing = await readStoreFromSupabase();
+    const toInsert: AttendeeRecord[] = [];
+
+    for (const a of Object.values(store.attendees)) {
+      if (!existing.attendees[a.confirmationCode]) {
+        toInsert.push(a);
+      }
+    }
+    if (toInsert.length) {
+      await insertNewAttendeesToSupabase(toInsert);
+    }
+
+    // Upsert check-ins for attendees that differ from existing
+    for (const a of Object.values(store.attendees)) {
+      const prev = existing.attendees[a.confirmationCode];
+      const days: EventDay[] = ["2026-08-01", "2026-08-02"];
+      for (const day of days) {
+        const next = a.checkIns[day] ?? null;
+        const before = prev?.checkIns[day] ?? null;
+        const same =
+          (!next && !before) ||
+          (next &&
+            before &&
+            next.at === before.at &&
+            next.method === before.method);
+        if (same) continue;
+        await setDayCheckInInSupabase(a.confirmationCode, day, next);
+      }
+    }
+
+    store.updatedAt = new Date().toISOString();
+    return;
+  }
+
+  if (backend === "blob") {
     await writeStoreToBlob(store);
     return;
   }
+
   await writeStoreToFilesystem(store);
+}
+
+/** Insert only new confirmation codes (all backends). */
+export async function insertNewAttendees(
+  attendees: AttendeeRecord[]
+): Promise<number> {
+  if (attendees.length === 0) return 0;
+
+  if (storageBackend() === "supabase") {
+    const { insertNewAttendeesToSupabase } = await import("./supabase-store");
+    return insertNewAttendeesToSupabase(attendees);
+  }
+
+  const store = await readStore();
+  let added = 0;
+  for (const a of attendees) {
+    if (store.attendees[a.confirmationCode]) continue;
+    store.attendees[a.confirmationCode] = a;
+    added++;
+  }
+  if (added) await writeStore(store);
+  return added;
+}
+
+/** Set or clear a single day check-in (all backends). Concurrent-safe on Supabase. */
+export async function setDayCheckIn(
+  confirmationCode: string,
+  day: EventDay,
+  checkIn: DayCheckIn | null
+): Promise<void> {
+  if (storageBackend() === "supabase") {
+    const { setDayCheckInInSupabase } = await import("./supabase-store");
+    await setDayCheckInInSupabase(confirmationCode, day, checkIn);
+    return;
+  }
+
+  const store = await readStore();
+  const record = store.attendees[confirmationCode];
+  if (!record) {
+    throw new Error("Attendee not found");
+  }
+  if (checkIn) {
+    record.checkIns[day] = checkIn;
+  } else {
+    delete record.checkIns[day];
+  }
+  await writeStore(store);
 }

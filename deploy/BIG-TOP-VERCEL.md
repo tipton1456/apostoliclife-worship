@@ -1,45 +1,55 @@
-# Big Top Check-In on Vercel
+# Big Top Check-In on Vercel + Supabase
 
-The check-in UI is a normal Next.js route:
+Page: `/big-top`  
+APIs: `/api/big-top/attendees`, `/api/big-top/check-in`, `/api/big-top/upload`
 
-- Page: `/big-top`
-- APIs: `/api/big-top/attendees`, `/api/big-top/check-in`, `/api/big-top/upload`
+## Storage preference
 
-## Why Blob storage?
+1. **Supabase** (recommended) — when `NEXT_PUBLIC_SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` are set  
+2. Vercel Blob — if only `BLOB_READ_WRITE_TOKEN` is set  
+3. Local JSON — `data/tithely/big-top-store.json` for laptop dev without cloud
 
-Vercel serverless functions **cannot keep check-ins on the local disk**.  
-When `BLOB_READ_WRITE_TOKEN` is set, the app stores the attendee list + check-ins in **Vercel Blob** (private JSON). Locally, without that token, it still uses `data/tithely/big-top-store.json`.
+Use the **same Supabase project** as `apostolic-life-portal`.
 
-## One-time setup in the Vercel project
+## One-time: create tables
 
-1. Open your **apostoliclife-worship** (or apostolic-worship) project on [vercel.com](https://vercel.com).
-2. Go to **Storage** → create **Blob** (if you don’t already have one) and connect it to this project.
-3. Confirm env var **`BLOB_READ_WRITE_TOKEN`** is present for Production (and Preview if you want).
-4. Add optional staff lock:
-   - **`BIG_TOP_ACCESS_CODE`** = a password only volunteers know  
-   (recommended: the page is public and lists attendee names).
-5. Redeploy after env changes (Deployments → Redeploy, or push a commit).
+In the Supabase dashboard → **SQL Editor**, run:
+
+`supabase/migrations/202607310001_big_top_checkin.sql`
+
+That creates:
+
+- `big_top_attendees` (one row per Tithely confirmation code)
+- `big_top_check_ins` (per person per day: Aug 1 / Aug 2)
+
+RLS is on with **no public policies** — only the service role (server) can read/write.
+
+## Env vars (Vercel + local)
+
+Copy from the portal project:
+
+| Variable | Purpose |
+|----------|---------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Project URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server API access (secret) |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Optional; matches portal naming |
+| `BIG_TOP_ACCESS_CODE` | Optional staff password for `/big-top` |
+
+**Never** expose the service role key to the browser.
 
 ## After deploy
 
-1. Open `https://<your-domain>/big-top`
-2. Enter the access code (if configured)
-3. **Upload** `big-top-back-to-school-bash.csv` (or a fresh Tithely export)  
-   - First upload seeds everyone  
-   - Later uploads only add **new** confirmation codes and never wipe check-ins
+1. Open `https://<domain>/big-top`
+2. Unlock with access code (if set)
+3. Upload Tithely CSV — first upload seeds Supabase; later uploads only add **new** codes and never wipe check-ins
 
-## Git note
+## Merge + check-in rules
 
-`data/tithely/` is gitignored on purpose (PII). Do not commit the CSV or store JSON. Always upload the CSV through the live page after deploy.
+- CSV upload: **insert new confirmation codes only**
+- Check-in: separate rows for `2026-08-01` and `2026-08-02`
+- Same person can check in both days
+- Concurrent check-ins are safe (row upserts, not whole-file rewrites)
 
-## Local vs Vercel
+## Git
 
-| | Local | Vercel |
-|--|--------|--------|
-| Store | `data/tithely/big-top-store.json` | Private Blob `big-top/store.json` |
-| Seed CSV auto-load | Yes, if file is present | No — upload via UI |
-| Access code | Optional | Strongly recommended |
-
-## Mic board / PreSonus
-
-PreSonus bridge still runs on a church Mac (`localhost:4310`). The Vercel site hosts the web UI and Big Top check-in; mixer signal status only works when the browser can reach the bridge (same LAN / tunnel).
+`data/tithely/` stays gitignored (PII). Do not commit CSVs or service role keys.

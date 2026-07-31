@@ -9,7 +9,9 @@ import {
 export {
   getSeedCsvPath,
   getStorePath,
+  insertNewAttendees,
   readStore,
+  setDayCheckIn,
   storageBackend,
   writeStore,
 } from "./persistence";

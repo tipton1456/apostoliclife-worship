@@ -8,9 +8,10 @@ import {
   defaultEventDay,
   isEventDay,
   parseConfirmationInput,
+  setDayCheckIn,
   statsForStore,
   toPublicAttendee,
-  writeStore,
+  readStore,
 } from "@/lib/big-top/store";
 import type { CheckInMethod, EventDay } from "@/lib/big-top/types";
 
@@ -18,15 +19,11 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 type Body = {
-  /** Barcode URL, CODE-ID, or CODE/ID */
   scan?: string;
-  /** Direct confirmation code if not scanning */
   confirmationCode?: string;
   day?: string;
   method?: CheckInMethod;
-  /** If true, replace existing check-in timestamp for that day */
   force?: boolean;
-  /** Undo check-in for the day */
   undo?: boolean;
 };
 
@@ -63,7 +60,10 @@ export async function POST(request: NextRequest) {
 
     const code =
       parseConfirmationInput(rawCode) || rawCode.trim().toUpperCase();
-    const { store } = await ensureSeededStore();
+
+    // Ensure seed on first use (filesystem only); Supabase starts empty until CSV upload
+    await ensureSeededStore();
+    const store = await readStore();
     const record = store.attendees[code];
 
     if (!record) {
@@ -78,16 +78,15 @@ export async function POST(request: NextRequest) {
     }
 
     if (body.undo) {
-      if (record.checkIns[day]) {
-        delete record.checkIns[day];
-        await writeStore(store);
-      }
+      await setDayCheckIn(code, day, null);
+      const refreshed = await readStore();
+      const updated = refreshed.attendees[code];
       return NextResponse.json({
         ok: true,
         undone: true,
         day,
-        attendee: toPublicAttendee(record),
-        stats: statsForStore(store),
+        attendee: toPublicAttendee(updated),
+        stats: statsForStore(refreshed),
         message: `Check-in removed for ${day}`,
       });
     }
@@ -104,19 +103,22 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    record.checkIns[day] = {
+    const checkIn = {
       at: new Date().toISOString(),
       method,
     };
-    await writeStore(store);
+    await setDayCheckIn(code, day, checkIn);
+
+    const refreshed = await readStore();
+    const updated = refreshed.attendees[code];
 
     return NextResponse.json({
       ok: true,
       alreadyCheckedIn: false,
       day,
-      attendee: toPublicAttendee(record),
-      stats: statsForStore(store),
-      message: `Checked in ${record.attendeeName} for ${day}`,
+      attendee: toPublicAttendee(updated),
+      stats: statsForStore(refreshed),
+      message: `Checked in ${updated.attendeeName} for ${day}`,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";

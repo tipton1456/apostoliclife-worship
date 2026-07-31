@@ -739,8 +739,8 @@ export default function BigTopCheckInPage() {
             </button>
           </div>
           <div>
-            On Vercel, upload the Tithely CSV after deploy so check-in data lives
-            in Blob storage (not the server disk).
+            Data is stored in Supabase when configured (same church DB as the
+            portal). Upload the Tithely CSV once after tables are created.
           </div>
         </footer>
       </div>
