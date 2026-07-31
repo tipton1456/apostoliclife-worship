@@ -213,12 +213,19 @@ export async function listDocuments(options?: {
     docs.map(async (doc) => {
       const kind = getFileKind(doc.contentType, doc.originalFilename);
       let thumbnailUrl: string | null = null;
-      if (kind === "image") {
+
+      // Prefer stored preview (PDF first page); images use the file itself
+      const previewPath =
+        doc.thumbnailPath ||
+        (kind === "image" ? doc.storagePath : null);
+
+      if (previewPath) {
         const { data } = await supabase.storage
           .from(BUCKET)
-          .createSignedUrl(doc.storagePath, THUMBNAIL_TTL_SECONDS);
+          .createSignedUrl(previewPath, THUMBNAIL_TTL_SECONDS);
         thumbnailUrl = data?.signedUrl || null;
       }
+
       return toListItem(doc, { thumbnailUrl });
     })
   );
@@ -299,6 +306,17 @@ export async function uploadDocument(input: {
     throw new Error(`File upload failed: ${uploadError.message}`);
   }
 
+  let thumbnailPath: string | null = null;
+  const kind = getFileKind(contentType, originalFilename);
+  if (kind === "pdf") {
+    try {
+      thumbnailPath = await createAndUploadPdfThumbnail(id, buffer);
+    } catch (err) {
+      // Non-fatal: list will fall back to PDF badge
+      console.error("PDF thumbnail generation failed:", err);
+    }
+  }
+
   const doc: TechDoc = {
     id,
     title,
@@ -306,6 +324,7 @@ export async function uploadDocument(input: {
     description: input.description || "",
     uploadedBy,
     storagePath,
+    thumbnailPath,
     originalFilename,
     contentType,
     fileSize,
@@ -316,11 +335,98 @@ export async function uploadDocument(input: {
   try {
     await writeMeta(meta);
   } catch (err) {
-    await supabase.storage.from(BUCKET).remove([storagePath]);
+    const cleanup = [storagePath];
+    if (thumbnailPath) cleanup.push(thumbnailPath);
+    await supabase.storage.from(BUCKET).remove(cleanup);
     throw err;
   }
 
-  return toListItem(doc);
+  let thumbnailUrl: string | null = null;
+  if (thumbnailPath) {
+    const { data } = await supabase.storage
+      .from(BUCKET)
+      .createSignedUrl(thumbnailPath, THUMBNAIL_TTL_SECONDS);
+    thumbnailUrl = data?.signedUrl || null;
+  }
+
+  return toListItem(doc, { thumbnailUrl });
+}
+
+async function createAndUploadPdfThumbnail(
+  docId: string,
+  pdfBuffer: Buffer
+): Promise<string> {
+  const { renderPdfFirstPagePng } = await import("./pdf-thumbnail");
+  const png = await renderPdfFirstPagePng(pdfBuffer, {
+    maxWidth: 320,
+    scale: 1.25,
+  });
+  const thumbnailPath = `thumbs/${docId}.png`;
+  const supabase = createAdminClient();
+  const { error } = await supabase.storage.from(BUCKET).upload(thumbnailPath, png, {
+    contentType: "image/png",
+    upsert: true,
+  });
+  if (error) {
+    throw new Error(`Thumbnail upload failed: ${error.message}`);
+  }
+  return thumbnailPath;
+}
+
+/**
+ * Generate missing PDF thumbnails for documents already in the library.
+ * Returns how many were created.
+ */
+export async function backfillPdfThumbnails(): Promise<{
+  processed: number;
+  created: number;
+  skipped: number;
+  errors: string[];
+}> {
+  await ensureDocsBucket();
+  const meta = await readMeta();
+  const supabase = createAdminClient();
+  let created = 0;
+  let skipped = 0;
+  let processed = 0;
+  const errors: string[] = [];
+
+  for (let i = 0; i < meta.documents.length; i++) {
+    const doc = meta.documents[i];
+    const kind = getFileKind(doc.contentType, doc.originalFilename);
+    if (kind !== "pdf") {
+      skipped++;
+      continue;
+    }
+    if (doc.thumbnailPath) {
+      skipped++;
+      continue;
+    }
+
+    processed++;
+    try {
+      const { data, error } = await supabase.storage
+        .from(BUCKET)
+        .download(doc.storagePath);
+      if (error || !data) {
+        throw new Error(error?.message || "download failed");
+      }
+      const bytes = Buffer.from(await data.arrayBuffer());
+      const thumbnailPath = await createAndUploadPdfThumbnail(doc.id, bytes);
+      meta.documents[i] = { ...doc, thumbnailPath };
+      created++;
+    } catch (err) {
+      errors.push(
+        `${doc.id} (${doc.title}): ${err instanceof Error ? err.message : String(err)}`
+      );
+    }
+  }
+
+  if (created > 0) {
+    await writeMeta(meta);
+  }
+
+  return { processed, created, skipped, errors };
 }
 
 export async function createSignedDownloadUrl(

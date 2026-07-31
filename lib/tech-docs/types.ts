@@ -5,6 +5,8 @@ export type TechDoc = {
   description: string;
   uploadedBy: string;
   storagePath: string;
+  /** Optional stored preview image path (PDF first page, etc.) */
+  thumbnailPath?: string | null;
   originalFilename: string;
   contentType: string;
   fileSize: number;

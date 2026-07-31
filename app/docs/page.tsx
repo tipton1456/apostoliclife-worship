@@ -98,7 +98,8 @@ function FileThumbnail({ doc }: { doc: Doc }) {
                 ? "bg-pink-500/20 text-pink-200 border-pink-500/40"
                 : "bg-white/10 text-gray-300 border-white/20";
 
-  if (kind === "image" && doc.thumbnailUrl) {
+  // Real preview for images and generated PDF first-page thumbs
+  if (doc.thumbnailUrl && (kind === "image" || kind === "pdf")) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
