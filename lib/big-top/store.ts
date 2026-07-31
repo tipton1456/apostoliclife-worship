@@ -10,6 +10,7 @@ export {
   getSeedCsvPath,
   getStorePath,
   insertNewAttendees,
+  isServerlessRuntime,
   readStore,
   setDayCheckIn,
   storageBackend,

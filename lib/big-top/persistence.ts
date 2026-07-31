@@ -29,10 +29,27 @@ export function getSeedCsvPath() {
 
 export type StorageBackend = "supabase" | "blob" | "filesystem";
 
-/** Prefer Supabase (shared church DB), then Blob, then local JSON. */
+/** True on Vercel / AWS Lambda — never use local disk for durable store. */
+export function isServerlessRuntime(): boolean {
+  return Boolean(
+    process.env.VERCEL ||
+      process.env.AWS_LAMBDA_FUNCTION_NAME ||
+      process.env.LAMBDA_TASK_ROOT
+  );
+}
+
+/**
+ * Prefer Supabase (shared church DB), then Blob.
+ * Filesystem only for local laptop dev — never on Vercel.
+ */
 export function storageBackend(): StorageBackend {
   if (hasSupabaseAdminConfig()) return "supabase";
   if (process.env.BLOB_READ_WRITE_TOKEN?.trim()) return "blob";
+  if (isServerlessRuntime()) {
+    throw new Error(
+      "Big Top storage is not configured on Vercel. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY on the Vercel project (Production), then Redeploy."
+    );
+  }
   return "filesystem";
 }
 
@@ -45,11 +62,16 @@ export function useBlobStorage(): boolean {
 }
 
 async function ensureDataDir() {
+  if (isServerlessRuntime()) {
+    throw new Error(
+      "Cannot write local Big Top data on Vercel. Configure Supabase env vars instead."
+    );
+  }
   await fs.mkdir(DATA_DIR, { recursive: true });
 }
 
 async function readStoreFromFilesystem(): Promise<BigTopStore> {
-  await ensureDataDir();
+  // Do not mkdir on read — Vercel (and empty local trees) must not create paths.
   try {
     const raw = await fs.readFile(STORE_PATH, "utf8");
     return normalizeStore(JSON.parse(raw) as BigTopStore);
@@ -131,14 +153,11 @@ export async function readStore(): Promise<BigTopStore> {
 /**
  * Full store write — used by filesystem/blob backends.
  * For Supabase, prefer insertNewAttendees + setDayCheckIn (avoids race overwrites).
- * If called on Supabase, only inserts new attendees and upserts check-ins present on each attendee
- * without deleting other concurrent check-ins for different people.
  */
 export async function writeStore(store: BigTopStore): Promise<void> {
   const backend = storageBackend();
 
   if (backend === "supabase") {
-    // Supabase path: only insert new attendees; sync check-ins per person via upserts
     const {
       insertNewAttendeesToSupabase,
       setDayCheckInInSupabase,
@@ -157,7 +176,6 @@ export async function writeStore(store: BigTopStore): Promise<void> {
       await insertNewAttendeesToSupabase(toInsert);
     }
 
-    // Upsert check-ins for attendees that differ from existing
     for (const a of Object.values(store.attendees)) {
       const prev = existing.attendees[a.confirmationCode];
       const days: EventDay[] = ["2026-08-01", "2026-08-02"];

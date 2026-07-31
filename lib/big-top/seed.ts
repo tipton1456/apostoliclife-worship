@@ -1,16 +1,18 @@
 import { promises as fs } from "fs";
 import { parseCsv, rowToAttendee } from "./csv";
+import { hasSupabaseAdminConfig } from "@/lib/supabase/admin";
 import {
   getSeedCsvPath,
   insertNewAttendees,
+  isServerlessRuntime,
   readStore,
 } from "./store";
 import type { AttendeeRecord, BigTopStore, UploadMergeResult } from "./types";
 
 /**
- * If the store is empty and the seed CSV exists locally, import it once.
- * Never overwrites existing confirmation codes.
- * On Vercel/Supabase without a local CSV, store stays empty until UI upload.
+ * If the store is empty and a local seed CSV exists, import it once.
+ * On Vercel/Supabase: never touch the filesystem — data already lives in Supabase
+ * (or is uploaded via the UI).
  */
 export async function ensureSeededStore(): Promise<{
   store: BigTopStore;
@@ -20,6 +22,15 @@ export async function ensureSeededStore(): Promise<{
   const store = await readStore();
   const count = Object.keys(store.attendees).length;
   if (count > 0) {
+    return { store, seeded: false };
+  }
+
+  // Serverless / remote backends: do not mkdir or read local CSV.
+  if (
+    isServerlessRuntime() ||
+    hasSupabaseAdminConfig() ||
+    Boolean(process.env.BLOB_READ_WRITE_TOKEN?.trim())
+  ) {
     return { store, seeded: false };
   }
 

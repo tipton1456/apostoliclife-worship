@@ -1,19 +1,28 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
+function envTrim(name: string): string {
+  return (process.env[name] || "").trim().replace(/^['"]|['"]$/g, "");
+}
+
+/**
+ * Supabase is ready when URL + service role are present.
+ * Also accepts SUPABASE_URL as alias for NEXT_PUBLIC_SUPABASE_URL.
+ */
 export function hasSupabaseAdminConfig(): boolean {
-  return Boolean(
-    process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() &&
-      process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()
-  );
+  const url =
+    envTrim("NEXT_PUBLIC_SUPABASE_URL") || envTrim("SUPABASE_URL");
+  const serviceRoleKey = envTrim("SUPABASE_SERVICE_ROLE_KEY");
+  return Boolean(url && serviceRoleKey);
 }
 
 export function createAdminClient(): SupabaseClient {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  const url =
+    envTrim("NEXT_PUBLIC_SUPABASE_URL") || envTrim("SUPABASE_URL");
+  const serviceRoleKey = envTrim("SUPABASE_SERVICE_ROLE_KEY");
 
   if (!url || !serviceRoleKey) {
     throw new Error(
-      "Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY."
+      "Supabase is not configured. On Vercel, set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY for Production, then Redeploy."
     );
   }
 
