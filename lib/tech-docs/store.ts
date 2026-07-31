@@ -1,8 +1,9 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { TechDoc, TechDocListItem } from "./types";
+import type { FileKind, TechDoc, TechDocListItem } from "./types";
 
 const BUCKET = "worship-tech-docs";
 const META_PATH = "meta/library.json";
+const THUMBNAIL_TTL_SECONDS = 60 * 30; // 30 minutes
 
 const DEFAULT_CATEGORIES = [
   "General",
@@ -31,9 +32,57 @@ function emptyMeta(): LibraryMeta {
   };
 }
 
-function toListItem(doc: TechDoc): TechDocListItem {
+export function getFileKind(
+  contentType: string,
+  filename: string
+): FileKind {
+  const type = (contentType || "").toLowerCase();
+  const name = (filename || "").toLowerCase();
+
+  if (type.startsWith("image/") || /\.(png|jpe?g|gif|webp|svg|heic|bmp)$/i.test(name)) {
+    return "image";
+  }
+  if (type === "application/pdf" || name.endsWith(".pdf")) return "pdf";
+  if (type.startsWith("video/") || /\.(mp4|mov|webm|m4v)$/i.test(name)) {
+    return "video";
+  }
+  if (type.startsWith("audio/") || /\.(mp3|wav|m4a|aac)$/i.test(name)) {
+    return "audio";
+  }
+  if (
+    type.includes("word") ||
+    type.includes("msword") ||
+    /\.(docx?|rtf)$/i.test(name)
+  ) {
+    return "doc";
+  }
+  if (
+    type.includes("sheet") ||
+    type.includes("excel") ||
+    /\.(xlsx?|csv)$/i.test(name)
+  ) {
+    return "sheet";
+  }
+  if (
+    type.includes("presentation") ||
+    type.includes("powerpoint") ||
+    /\.(pptx?|key)$/i.test(name)
+  ) {
+    return "presentation";
+  }
+  return "file";
+}
+
+function toListItem(
+  doc: TechDoc,
+  extras?: { thumbnailUrl?: string | null }
+): TechDocListItem {
   const { storagePath: _storagePath, ...rest } = doc;
-  return rest;
+  return {
+    ...rest,
+    kind: getFileKind(doc.contentType, doc.originalFilename),
+    thumbnailUrl: extras?.thumbnailUrl ?? null,
+  };
 }
 
 export async function ensureDocsBucket() {
@@ -159,7 +208,22 @@ export async function listDocuments(options?: {
     });
   }
 
-  return docs.map(toListItem);
+  const supabase = createAdminClient();
+  const items = await Promise.all(
+    docs.map(async (doc) => {
+      const kind = getFileKind(doc.contentType, doc.originalFilename);
+      let thumbnailUrl: string | null = null;
+      if (kind === "image") {
+        const { data } = await supabase.storage
+          .from(BUCKET)
+          .createSignedUrl(doc.storagePath, THUMBNAIL_TTL_SECONDS);
+        thumbnailUrl = data?.signedUrl || null;
+      }
+      return toListItem(doc, { thumbnailUrl });
+    })
+  );
+
+  return items;
 }
 
 export async function getDocument(id: string): Promise<TechDoc | null> {

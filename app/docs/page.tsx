@@ -8,6 +8,16 @@ import {
   type FormEvent,
 } from "react";
 
+type FileKind =
+  | "image"
+  | "pdf"
+  | "video"
+  | "audio"
+  | "doc"
+  | "sheet"
+  | "presentation"
+  | "file";
+
 type Doc = {
   id: string;
   title: string;
@@ -18,6 +28,8 @@ type Doc = {
   contentType: string;
   fileSize: number;
   createdAt: string;
+  kind?: FileKind;
+  thumbnailUrl?: string | null;
 };
 
 const ACCESS_STORAGE_KEY = "big-top-access-code";
@@ -50,6 +62,61 @@ function formatDate(iso: string) {
   } catch {
     return iso;
   }
+}
+
+function FileThumbnail({ doc }: { doc: Doc }) {
+  const kind = doc.kind || "file";
+  const label =
+    kind === "image"
+      ? "IMG"
+      : kind === "pdf"
+        ? "PDF"
+        : kind === "video"
+          ? "VID"
+          : kind === "audio"
+            ? "AUD"
+            : kind === "doc"
+              ? "DOC"
+              : kind === "sheet"
+                ? "XLS"
+                : kind === "presentation"
+                  ? "PPT"
+                  : "FILE";
+
+  const tone =
+    kind === "pdf"
+      ? "bg-red-500/20 text-red-200 border-red-500/40"
+      : kind === "doc"
+        ? "bg-blue-500/20 text-blue-200 border-blue-500/40"
+        : kind === "sheet"
+          ? "bg-emerald-500/20 text-emerald-200 border-emerald-500/40"
+          : kind === "presentation"
+            ? "bg-orange-500/20 text-orange-200 border-orange-500/40"
+            : kind === "video"
+              ? "bg-purple-500/20 text-purple-200 border-purple-500/40"
+              : kind === "audio"
+                ? "bg-pink-500/20 text-pink-200 border-pink-500/40"
+                : "bg-white/10 text-gray-300 border-white/20";
+
+  if (kind === "image" && doc.thumbnailUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={doc.thumbnailUrl}
+        alt=""
+        className="h-14 w-14 sm:h-16 sm:w-16 shrink-0 rounded-xl object-cover border border-white/15 bg-black"
+      />
+    );
+  }
+
+  return (
+    <div
+      className={`h-14 w-14 sm:h-16 sm:w-16 shrink-0 rounded-xl border flex items-center justify-center text-[11px] sm:text-xs font-black tracking-wide ${tone}`}
+      aria-hidden
+    >
+      {label}
+    </div>
+  );
 }
 
 export default function DocsPage() {
@@ -262,24 +329,29 @@ export default function DocsPage() {
               >
                 <div className="p-4 sm:p-5">
                   <div className="flex flex-col sm:flex-row sm:items-start gap-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2 mb-1">
-                        <span className="rounded-full bg-[#7bbc07]/20 text-[#b6e86a] border border-[#7bbc07]/40 px-2.5 py-0.5 text-xs font-bold">
-                          {doc.category}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {formatBytes(doc.fileSize)}
-                        </span>
+                    <div className="flex items-start gap-3 min-w-0 flex-1">
+                      <FileThumbnail doc={doc} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
+                          <span className="rounded-full bg-[#7bbc07]/20 text-[#b6e86a] border border-[#7bbc07]/40 px-2.5 py-0.5 text-xs font-bold">
+                            {doc.category}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            {formatBytes(doc.fileSize)}
+                          </span>
+                        </div>
+                        <h3 className="text-lg sm:text-xl font-bold leading-snug">
+                          {doc.title}
+                        </h3>
+                        <p className="text-xs text-gray-400 mt-1">
+                          {doc.uploadedBy} · {formatDate(doc.createdAt)} ·{" "}
+                          <span className="font-mono">
+                            {doc.originalFilename}
+                          </span>
+                        </p>
                       </div>
-                      <h3 className="text-lg sm:text-xl font-bold leading-snug">
-                        {doc.title}
-                      </h3>
-                      <p className="text-xs text-gray-400 mt-1">
-                        {doc.uploadedBy} · {formatDate(doc.createdAt)} ·{" "}
-                        <span className="font-mono">{doc.originalFilename}</span>
-                      </p>
                     </div>
-                    <div className="flex gap-2 shrink-0">
+                    <div className="flex gap-2 shrink-0 pl-[4.25rem] sm:pl-0">
                       <button
                         type="button"
                         onClick={() => setExpandedId(open ? null : doc.id)}

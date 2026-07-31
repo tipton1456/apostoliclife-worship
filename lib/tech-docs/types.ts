@@ -11,4 +11,18 @@ export type TechDoc = {
   createdAt: string;
 };
 
-export type TechDocListItem = Omit<TechDoc, "storagePath">;
+export type FileKind =
+  | "image"
+  | "pdf"
+  | "video"
+  | "audio"
+  | "doc"
+  | "sheet"
+  | "presentation"
+  | "file";
+
+export type TechDocListItem = Omit<TechDoc, "storagePath"> & {
+  kind: FileKind;
+  /** Short-lived signed URL for image previews (null for non-images) */
+  thumbnailUrl: string | null;
+};
