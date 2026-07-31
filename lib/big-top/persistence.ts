@@ -1,6 +1,9 @@
 import { promises as fs } from "fs";
 import path from "path";
-import { hasSupabaseAdminConfig } from "@/lib/supabase/admin";
+import {
+  getSupabaseConfigDiagnostics,
+  hasSupabaseAdminConfig,
+} from "@/lib/supabase/admin";
 import {
   emptyStore,
   normalizeStore,
@@ -46,8 +49,9 @@ export function storageBackend(): StorageBackend {
   if (hasSupabaseAdminConfig()) return "supabase";
   if (process.env.BLOB_READ_WRITE_TOKEN?.trim()) return "blob";
   if (isServerlessRuntime()) {
+    const d = getSupabaseConfigDiagnostics();
     throw new Error(
-      "Big Top storage is not configured on Vercel. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY on the Vercel project (Production), then Redeploy."
+      `Big Top storage is not configured on Vercel (hasUrl=${d.hasUrl}, hasServiceRoleKey=${d.hasServiceRoleKey}, vercelEnv=${d.vercelEnv}, keys=${d.relatedKeyNames.join("|") || "none"}). Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY for Production, then Redeploy. Debug: /api/big-top/health`
     );
   }
   return "filesystem";
