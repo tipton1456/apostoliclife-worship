@@ -60,26 +60,11 @@ export default function DocsPage() {
 
   const [documents, setDocuments] = useState<Doc[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
-  const [uploaders, setUploaders] = useState<string[]>([]);
 
   const [filterCategory, setFilterCategory] = useState("");
   const [query, setQuery] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
-
-  const [title, setTitle] = useState("");
-  const [category, setCategory] = useState("");
-  const [newCategory, setNewCategory] = useState("");
-  const [useNewCategory, setUseNewCategory] = useState(false);
-  const [description, setDescription] = useState("");
-  const [uploadedBy, setUploadedBy] = useState("");
-  const [newUploader, setNewUploader] = useState("");
-  const [useNewUploader, setUseNewUploader] = useState(false);
-  const [file, setFile] = useState<File | null>(null);
-
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [showUpload, setShowUpload] = useState(true);
 
   const authHeaders = useCallback(
     (extra?: HeadersInit): HeadersInit => {
@@ -118,7 +103,6 @@ export default function DocsPage() {
     setAccessReady(true);
     setDocuments(data.documents || []);
     setCategories(data.categories || []);
-    setUploaders(data.uploaders || []);
   }, [authHeaders, filterCategory, query]);
 
   useEffect(() => {
@@ -143,62 +127,13 @@ export default function DocsPage() {
     await load();
   }
 
-  async function handleUpload(e: FormEvent) {
-    e.preventDefault();
-    setBusy(true);
-    setMessage(null);
-    setError(null);
-
-    try {
-      const resolvedCategory = useNewCategory ? newCategory.trim() : category;
-      const resolvedUploader = useNewUploader ? newUploader.trim() : uploadedBy;
-
-      if (!title.trim()) throw new Error("Document name is required");
-      if (!resolvedCategory) throw new Error("Category is required");
-      if (!resolvedUploader) throw new Error("Uploader is required");
-      if (!file) throw new Error("Choose a file to upload");
-
-      const form = new FormData();
-      form.append("title", title.trim());
-      form.append("category", resolvedCategory);
-      form.append("description", description);
-      form.append("uploadedBy", resolvedUploader);
-      form.append("file", file);
-
-      const res = await fetch("/api/docs", {
-        method: "POST",
-        headers: authHeaders(),
-        body: form,
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Upload failed");
-
-      setDocuments(data.documents || []);
-      setCategories(data.categories || []);
-      setUploaders(data.uploaders || []);
-      setMessage(data.message || "Uploaded");
-      setTitle("");
-      setDescription("");
-      setFile(null);
-      setNewCategory("");
-      setUseNewCategory(false);
-      setNewUploader("");
-      setUseNewUploader(false);
-      if (resolvedCategory) setCategory(resolvedCategory);
-      if (resolvedUploader) setUploadedBy(resolvedUploader);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed");
-    } finally {
-      setBusy(false);
-    }
-  }
-
   async function handleDownload(doc: Doc) {
     setError(null);
     try {
-      const res = await fetch(`/api/docs/download?id=${encodeURIComponent(doc.id)}`, {
-        headers: authHeaders(),
-      });
+      const res = await fetch(
+        `/api/docs/download?id=${encodeURIComponent(doc.id)}`,
+        { headers: authHeaders() }
+      );
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Download failed");
       window.open(data.url, "_blank", "noopener,noreferrer");
@@ -206,8 +141,6 @@ export default function DocsPage() {
       setError(err instanceof Error ? err.message : "Download failed");
     }
   }
-
-  const filteredCount = documents.length;
 
   if (!accessReady) {
     if (needsAccess) {
@@ -252,12 +185,18 @@ export default function DocsPage() {
   return (
     <main className="min-h-screen bg-black text-white">
       <div className="max-w-4xl mx-auto px-4 py-6 sm:px-6 sm:py-8">
-        <div className="mb-4">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <Link
             href="/"
             className="text-sm text-gray-400 hover:text-[#7bbc07] underline"
           >
             ← Tech portal home
+          </Link>
+          <Link
+            href="/docs/upload"
+            className="rounded-xl bg-[#7bbc07] text-black font-bold px-4 py-2.5 text-sm sm:text-base"
+          >
+            Upload document
           </Link>
         </div>
 
@@ -269,189 +208,16 @@ export default function DocsPage() {
             Apostolic Worship Documentation
           </h1>
           <p className="text-gray-400 mt-1">
-            Upload and find production docs, manuals, and runbooks.
+            Find production docs, manuals, and runbooks.
           </p>
         </header>
 
-        {/* Upload */}
-        <section className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-5 mb-6">
-          <button
-            type="button"
-            onClick={() => setShowUpload((v) => !v)}
-            className="w-full flex items-center justify-between text-left"
-          >
-            <h2 className="text-xl font-bold">Upload document</h2>
-            <span className="text-sm text-gray-400">
-              {showUpload ? "Hide" : "Show"}
-            </span>
-          </button>
-
-          {showUpload && (
-            <form onSubmit={handleUpload} className="mt-4 space-y-4">
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">
-                  Document name
-                </label>
-                <input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g. PreSonus stagebox patch notes"
-                  className="w-full rounded-xl bg-black border border-white/20 px-4 py-3 focus:outline-none focus:border-[#7bbc07]"
-                  required
-                />
-              </div>
-
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">
-                    Category
-                  </label>
-                  {!useNewCategory ? (
-                    <select
-                      value={category}
-                      onChange={(e) => {
-                        if (e.target.value === "__new__") {
-                          setUseNewCategory(true);
-                          setCategory("");
-                        } else {
-                          setCategory(e.target.value);
-                        }
-                      }}
-                      className="w-full rounded-xl bg-black border border-white/20 px-4 py-3 focus:outline-none focus:border-[#7bbc07]"
-                      required={!useNewCategory}
-                    >
-                      <option value="">Select category…</option>
-                      {categories.map((c) => (
-                        <option key={c} value={c}>
-                          {c}
-                        </option>
-                      ))}
-                      <option value="__new__">+ Add new category…</option>
-                    </select>
-                  ) : (
-                    <div className="flex gap-2">
-                      <input
-                        value={newCategory}
-                        onChange={(e) => setNewCategory(e.target.value)}
-                        placeholder="New category name"
-                        className="flex-1 rounded-xl bg-black border border-white/20 px-4 py-3 focus:outline-none focus:border-[#7bbc07]"
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setUseNewCategory(false);
-                          setNewCategory("");
-                        }}
-                        className="px-3 rounded-xl border border-white/20 text-sm"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">
-                    Uploaded by
-                  </label>
-                  {!useNewUploader ? (
-                    <select
-                      value={uploadedBy}
-                      onChange={(e) => {
-                        if (e.target.value === "__new__") {
-                          setUseNewUploader(true);
-                          setUploadedBy("");
-                        } else {
-                          setUploadedBy(e.target.value);
-                        }
-                      }}
-                      className="w-full rounded-xl bg-black border border-white/20 px-4 py-3 focus:outline-none focus:border-[#7bbc07]"
-                      required={!useNewUploader}
-                    >
-                      <option value="">Select person…</option>
-                      {uploaders.map((u) => (
-                        <option key={u} value={u}>
-                          {u}
-                        </option>
-                      ))}
-                      <option value="__new__">+ Add new person…</option>
-                    </select>
-                  ) : (
-                    <div className="flex gap-2">
-                      <input
-                        value={newUploader}
-                        onChange={(e) => setNewUploader(e.target.value)}
-                        placeholder="Person’s name"
-                        className="flex-1 rounded-xl bg-black border border-white/20 px-4 py-3 focus:outline-none focus:border-[#7bbc07]"
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setUseNewUploader(false);
-                          setNewUploader("");
-                        }}
-                        className="px-3 rounded-xl border border-white/20 text-sm"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">
-                  Description
-                </label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={6}
-                  placeholder="Notes, how to use this doc, when it applies, related systems…"
-                  className="w-full rounded-xl bg-black border border-white/20 px-4 py-3 focus:outline-none focus:border-[#7bbc07] resize-y min-h-[8rem]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-gray-400 mb-1">File</label>
-                <input
-                  type="file"
-                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                  className="block w-full text-sm text-gray-300 file:mr-4 file:rounded-lg file:border-0 file:bg-[#7bbc07] file:px-4 file:py-2 file:font-bold file:text-black"
-                  required
-                />
-                {file && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    {file.name} · {formatBytes(file.size)}
-                  </p>
-                )}
-              </div>
-
-              <button
-                type="submit"
-                disabled={busy}
-                className="w-full sm:w-auto rounded-xl bg-[#7bbc07] text-black font-bold px-6 py-3 disabled:opacity-40"
-              >
-                {busy ? "Uploading…" : "Upload document"}
-              </button>
-            </form>
-          )}
-        </section>
-
-        {message && (
-          <div className="mb-4 rounded-xl border border-emerald-500/40 bg-emerald-500/15 px-4 py-3 text-sm text-emerald-200">
-            {message}
-          </div>
-        )}
         {error && (
           <div className="mb-4 rounded-xl border border-red-500/40 bg-red-500/15 px-4 py-3 text-sm text-red-200">
             {error}
           </div>
         )}
 
-        {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-2 mb-4">
           <input
             value={query}
@@ -474,13 +240,17 @@ export default function DocsPage() {
         </div>
 
         <p className="text-sm text-gray-500 mb-3">
-          {filteredCount} document{filteredCount === 1 ? "" : "s"}
+          {documents.length} document{documents.length === 1 ? "" : "s"}
         </p>
 
         <ul className="space-y-3 pb-12">
           {documents.length === 0 && (
             <li className="text-center text-gray-500 py-12">
-              No documents yet. Upload the first one above.
+              No documents yet.{" "}
+              <Link href="/docs/upload" className="text-[#7bbc07] underline">
+                Upload the first one
+              </Link>
+              .
             </li>
           )}
           {documents.map((doc) => {
@@ -512,9 +282,7 @@ export default function DocsPage() {
                     <div className="flex gap-2 shrink-0">
                       <button
                         type="button"
-                        onClick={() =>
-                          setExpandedId(open ? null : doc.id)
-                        }
+                        onClick={() => setExpandedId(open ? null : doc.id)}
                         className="rounded-xl border border-white/20 px-3 py-2 text-sm font-semibold hover:bg-white/10"
                       >
                         {open ? "Hide" : "Details"}
