@@ -3,6 +3,12 @@ import Link from "next/link";
 
 const menuItems = [
   {
+    href: "/docs",
+    title: "Apostolic Worship Documentation",
+    description:
+      "Upload and browse tech department docs, manuals, and runbooks",
+  },
+  {
     href: "/big-top",
     title: "Big Top Event Check In",
     description: "Scan tickets and check in attendees for the Back to School Bash",
@@ -39,7 +45,8 @@ export default function LandingPage() {
           Apostolic Worship Tech Landing Page
         </h1>
         <p className="text-gray-400 text-base sm:text-lg mb-10 max-w-lg">
-          Tools for service production, mic boards, and event check-in.
+          Tools for service production, documentation, mic boards, and event
+          check-in.
         </p>
 
         <nav className="w-full space-y-3" aria-label="Main menu">
