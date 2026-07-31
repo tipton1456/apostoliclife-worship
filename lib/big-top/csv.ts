@@ -121,6 +121,7 @@ export function rowToAttendee(
       "If so, Where do you call home?",
       "If so, Where do you call home? "
     ),
+    backpackReceivedAt: null,
     checkIns: {},
     importedAt: nowIso,
     sourceUpdatedAt: nowIso,

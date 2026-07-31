@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   useCallback,
   useEffect,
@@ -45,6 +46,8 @@ type Stats = {
   adults: number;
   children: number;
   backpackNeeded: number;
+  backpackReceived?: number;
+  backpackRemaining?: number;
   days: DayStats[];
   updatedAt: string;
 };
@@ -511,6 +514,12 @@ export default function BigTopCheckInPage() {
           <StatCard
             label="Backpacks needed"
             value={stats?.backpackNeeded ?? "—"}
+            href="/big-top/backpacks"
+            hint={
+              stats?.backpackRemaining != null
+                ? `${stats.backpackRemaining} left · open checklist`
+                : "Open checklist"
+            }
           />
         </section>
 
@@ -752,23 +761,40 @@ function StatCard({
   label,
   value,
   accent,
+  href,
+  hint,
 }: {
   label: string;
   value: string | number;
   accent?: boolean;
+  href?: string;
+  hint?: string;
 }) {
-  return (
-    <div
-      className={`rounded-2xl border p-4 ${
-        accent
-          ? "border-[#7bbc07]/50 bg-[#7bbc07]/10"
-          : "border-white/10 bg-white/5"
-      }`}
-    >
+  const className = `rounded-2xl border p-4 block ${
+    accent || href
+      ? "border-[#7bbc07]/50 bg-[#7bbc07]/10"
+      : "border-white/10 bg-white/5"
+  } ${href ? "hover:bg-[#7bbc07]/20 transition-colors cursor-pointer" : ""}`;
+
+  const body = (
+    <>
       <p className="text-xs uppercase tracking-wide text-gray-400">{label}</p>
       <p className="text-3xl font-black mt-1">{value}</p>
-    </div>
+      {hint && (
+        <p className="text-[11px] text-[#b6e86a] mt-1 font-semibold">{hint}</p>
+      )}
+    </>
   );
+
+  if (href) {
+    return (
+      <Link href={href} className={className}>
+        {body}
+      </Link>
+    );
+  }
+
+  return <div className={className}>{body}</div>;
 }
 
 function TicketBadge({ ticket }: { ticket: string }) {

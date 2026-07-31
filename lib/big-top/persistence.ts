@@ -255,3 +255,23 @@ export async function setDayCheckIn(
   }
   await writeStore(store);
 }
+
+/** Mark backpack handed out (or undo). Concurrent-safe on Supabase. */
+export async function setBackpackReceived(
+  confirmationCode: string,
+  received: boolean
+): Promise<void> {
+  if (storageBackend() === "supabase") {
+    const { setBackpackReceivedInSupabase } = await import("./supabase-store");
+    await setBackpackReceivedInSupabase(confirmationCode, received);
+    return;
+  }
+
+  const store = await readStore();
+  const record = store.attendees[confirmationCode];
+  if (!record) {
+    throw new Error("Attendee not found");
+  }
+  record.backpackReceivedAt = received ? new Date().toISOString() : null;
+  await writeStore(store);
+}

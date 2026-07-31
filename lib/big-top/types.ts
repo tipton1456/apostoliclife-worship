@@ -5,6 +5,12 @@ export const BIG_TOP_EVENT_NAME = "Big Top Back to School Bash";
 export const EVENT_DAYS = ["2026-08-01", "2026-08-02"] as const;
 export type EventDay = (typeof EVENT_DAYS)[number];
 
+/**
+ * Marker row in big_top_check_ins for backpack handout (no schema change needed).
+ * Not a real event day — only used as a durable flag in the check_ins table.
+ */
+export const BACKPACK_MARKER_DAY = "1970-01-01";
+
 export type CheckInMethod = "scan" | "manual";
 
 export type DayCheckIn = {
@@ -31,6 +37,8 @@ export type AttendeeRecord = {
   backpack: string;
   homeChurch: string;
   homeChurchWhere: string;
+  /** When backpack was handed out (ISO); null/undefined if not yet */
+  backpackReceivedAt: string | null;
   /** Preserved across CSV re-uploads */
   checkIns: Partial<Record<EventDay, DayCheckIn>>;
   /** When this row was first imported */
@@ -50,6 +58,7 @@ export type AttendeePublic = AttendeeRecord & {
   checkInDay1: DayCheckIn | null;
   checkInDay2: DayCheckIn | null;
   needsBackpack: boolean;
+  backpackReceived: boolean;
 };
 
 export type UploadMergeResult = {

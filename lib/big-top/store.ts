@@ -12,6 +12,7 @@ export {
   insertNewAttendees,
   isServerlessRuntime,
   readStore,
+  setBackpackReceived,
   setDayCheckIn,
   storageBackend,
   writeStore,
@@ -97,11 +98,14 @@ export function needsBackpack(backpack: string): boolean {
 }
 
 export function toPublicAttendee(record: AttendeeRecord): AttendeePublic {
+  const needs = needsBackpack(record.backpack);
   return {
     ...record,
+    backpackReceivedAt: record.backpackReceivedAt ?? null,
     checkInDay1: record.checkIns["2026-08-01"] ?? null,
     checkInDay2: record.checkIns["2026-08-02"] ?? null,
-    needsBackpack: needsBackpack(record.backpack),
+    needsBackpack: needs,
+    backpackReceived: Boolean(record.backpackReceivedAt),
   };
 }
 
@@ -164,12 +168,30 @@ export function statsForStore(store: BigTopStore) {
     };
   });
 
+  const backpackList = attendees.filter((a) => needsBackpack(a.backpack));
+  const backpackReceived = backpackList.filter((a) => a.backpackReceivedAt).length;
+
   return {
     total,
     adults,
     children,
     backpackNeeded,
+    backpackReceived,
+    backpackRemaining: backpackNeeded - backpackReceived,
     days: dayStats,
     updatedAt: store.updatedAt,
   };
+}
+
+export function listBackpackAttendees(store: BigTopStore): AttendeePublic[] {
+  return Object.values(store.attendees)
+    .filter((a) => needsBackpack(a.backpack))
+    .map(toPublicAttendee)
+    .sort((a, b) => {
+      // Remaining first, then by name
+      if (a.backpackReceived !== b.backpackReceived) {
+        return a.backpackReceived ? 1 : -1;
+      }
+      return a.attendeeName.localeCompare(b.attendeeName);
+    });
 }

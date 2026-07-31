@@ -1,7 +1,9 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
+  BACKPACK_MARKER_DAY,
   BIG_TOP_EVENT_ID,
   BIG_TOP_EVENT_NAME,
+  EVENT_DAYS,
   type AttendeeRecord,
   type BigTopStore,
   type CheckInMethod,
@@ -30,6 +32,7 @@ type AttendeeRow = {
   backpack: string;
   home_church: string;
   home_church_where: string;
+  backpack_received_at?: string | null;
   imported_at: string;
   source_updated_at: string;
 };
@@ -61,6 +64,7 @@ function rowToAttendee(row: AttendeeRow): AttendeeRecord {
     backpack: row.backpack || "",
     homeChurch: row.home_church || "",
     homeChurchWhere: row.home_church_where || "",
+    backpackReceivedAt: row.backpack_received_at || null,
     checkIns: {},
     importedAt: row.imported_at || new Date().toISOString(),
     sourceUpdatedAt: row.source_updated_at || new Date().toISOString(),
@@ -124,6 +128,14 @@ export async function readStoreFromSupabase(): Promise<BigTopStore> {
   for (const row of (checkInRows || []) as CheckInRow[]) {
     const attendee = store.attendees[row.confirmation_code];
     if (!attendee) continue;
+
+    // Backpack handout is stored as a special check-in marker day
+    if (row.event_day === BACKPACK_MARKER_DAY) {
+      attendee.backpackReceivedAt = row.checked_in_at;
+      continue;
+    }
+
+    if (!(EVENT_DAYS as readonly string[]).includes(row.event_day)) continue;
     const day = row.event_day as EventDay;
     attendee.checkIns[day] = {
       at: row.checked_in_at,
@@ -209,5 +221,43 @@ export async function setDayCheckInInSupabase(
 
   if (error) {
     throw new Error(`Supabase check-in upsert failed: ${error.message}`);
+  }
+}
+
+/**
+ * Persist backpack handout using a marker row in big_top_check_ins
+ * (event_day = 1970-01-01). Avoids requiring a new column migration.
+ */
+export async function setBackpackReceivedInSupabase(
+  confirmationCode: string,
+  received: boolean
+): Promise<void> {
+  const supabase = createAdminClient();
+
+  if (!received) {
+    const { error } = await supabase
+      .from("big_top_check_ins")
+      .delete()
+      .eq("confirmation_code", confirmationCode)
+      .eq("event_day", BACKPACK_MARKER_DAY);
+
+    if (error) {
+      throw new Error(`Supabase backpack clear failed: ${error.message}`);
+    }
+    return;
+  }
+
+  const { error } = await supabase.from("big_top_check_ins").upsert(
+    {
+      confirmation_code: confirmationCode,
+      event_day: BACKPACK_MARKER_DAY,
+      checked_in_at: new Date().toISOString(),
+      method: "manual",
+    },
+    { onConflict: "confirmation_code,event_day" }
+  );
+
+  if (error) {
+    throw new Error(`Supabase backpack mark failed: ${error.message}`);
   }
 }
