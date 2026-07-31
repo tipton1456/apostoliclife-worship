@@ -375,29 +375,38 @@ export default function DocsPage() {
 
   return (
     <main className="h-[100dvh] bg-black text-white flex flex-col overflow-hidden">
-      {/* Top bar */}
-      <header className="shrink-0 border-b border-white/10 px-3 sm:px-4 py-3 flex flex-wrap items-center gap-2 sm:gap-3">
-        <Link
-          href="/"
-          className="text-xs sm:text-sm text-gray-400 hover:text-[#7bbc07] underline"
-        >
-          Home
-        </Link>
-        <div className="hidden sm:block h-4 w-px bg-white/15" />
-        <div className="min-w-0 flex-1">
-          <p className="text-[10px] sm:text-xs text-[#7bbc07] font-semibold uppercase tracking-wide">
-            Apostolic Life · Tech Department
-          </p>
-          <h1 className="text-base sm:text-xl font-black uppercase tracking-tight truncate">
+      {/* Top bar — compact */}
+      <header className="shrink-0 border-b border-white/10 px-3 sm:px-4 py-1.5 flex items-center gap-3">
+        <div className="min-w-0 flex-1 flex items-baseline gap-2">
+          <h1 className="text-sm sm:text-base font-black uppercase tracking-tight truncate">
             Apostolic Worship Documentation
           </h1>
+          <span className="hidden sm:inline text-[10px] text-gray-500 truncate">
+            Tech Department
+          </span>
         </div>
-        <Link
-          href="/docs/upload"
-          className="rounded-xl bg-[#7bbc07] text-black font-bold px-3 sm:px-4 py-2 text-sm"
-        >
-          Upload
-        </Link>
+        <nav className="shrink-0 flex items-center gap-3 text-xs sm:text-sm">
+          <Link
+            href="/"
+            className="text-gray-400 hover:text-[#7bbc07] underline underline-offset-2"
+          >
+            Home
+          </Link>
+          <Link
+            href="/docs/upload"
+            className="text-[#7bbc07] hover:text-[#b6e86a] underline underline-offset-2 font-semibold"
+          >
+            Upload
+          </Link>
+          <button
+            type="button"
+            onClick={handleDownload}
+            disabled={!selectedDoc}
+            className="text-[#7bbc07] hover:text-[#b6e86a] underline underline-offset-2 font-semibold disabled:opacity-30 disabled:no-underline"
+          >
+            Download
+          </button>
+        </nav>
       </header>
 
       {error && (
@@ -546,49 +555,37 @@ export default function DocsPage() {
             </div>
           ) : (
             <>
-              <div className="shrink-0 border-b border-white/10 px-3 sm:px-4 py-3 flex flex-wrap items-start gap-3">
+              <div className="shrink-0 border-b border-white/10 px-3 sm:px-4 py-1.5 flex items-center gap-2 min-h-0">
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2 mb-1">
-                    <span className="rounded-full bg-[#7bbc07]/20 text-[#b6e86a] border border-[#7bbc07]/40 px-2 py-0.5 text-[10px] font-bold">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="shrink-0 rounded bg-[#7bbc07]/15 text-[#b6e86a] border border-[#7bbc07]/30 px-1.5 py-px text-[9px] font-bold uppercase">
                       {selectedDoc.category}
                     </span>
-                    <span className="text-[10px] text-gray-500">
-                      {formatBytes(selectedDoc.fileSize)}
-                    </span>
+                    <h2 className="text-sm font-semibold truncate">
+                      {selectedDoc.title}
+                    </h2>
                   </div>
-                  <h2 className="text-lg sm:text-xl font-black leading-snug truncate">
-                    {selectedDoc.title}
-                  </h2>
-                  <p className="text-xs text-gray-400 mt-0.5 truncate">
+                  <p className="text-[10px] text-gray-500 truncate mt-0.5">
                     {selectedDoc.uploadedBy} · {formatDate(selectedDoc.createdAt)}{" "}
-                    ·{" "}
+                    · {formatBytes(selectedDoc.fileSize)} ·{" "}
                     <span className="font-mono">
                       {selectedDoc.originalFilename}
                     </span>
                   </p>
                 </div>
-                <div className="flex gap-2 shrink-0">
-                  {!treeCollapsed ? null : (
-                    <button
-                      type="button"
-                      onClick={toggleTreeCollapsed}
-                      className="md:hidden rounded-xl border border-white/20 px-3 py-2 text-sm font-semibold"
-                    >
-                      Library
-                    </button>
-                  )}
+                {treeCollapsed && (
                   <button
                     type="button"
-                    onClick={handleDownload}
-                    className="rounded-xl bg-[#7bbc07] text-black font-bold px-4 py-2 text-sm"
+                    onClick={toggleTreeCollapsed}
+                    className="md:hidden shrink-0 text-xs text-gray-400 hover:text-[#7bbc07] underline underline-offset-2"
                   >
-                    Download
+                    Library
                   </button>
-                </div>
+                )}
               </div>
 
               {selectedDoc.description?.trim() && (
-                <div className="shrink-0 px-3 sm:px-4 py-2 border-b border-white/10 text-sm text-gray-300 bg-white/[0.03] max-h-24 overflow-y-auto whitespace-pre-wrap">
+                <div className="shrink-0 px-3 sm:px-4 py-1 border-b border-white/10 text-[11px] leading-snug text-gray-400 bg-white/[0.02] max-h-16 overflow-y-auto whitespace-pre-wrap">
                   {selectedDoc.description}
                 </div>
               )}
