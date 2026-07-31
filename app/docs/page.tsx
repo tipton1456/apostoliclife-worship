@@ -4,6 +4,7 @@ import Link from "next/link";
 import {
   useCallback,
   useEffect,
+  useMemo,
   useState,
   type FormEvent,
 } from "react";
@@ -33,6 +34,7 @@ type Doc = {
 };
 
 const ACCESS_STORAGE_KEY = "big-top-access-code";
+const TREE_COLLAPSED_KEY = "docs-tree-collapsed";
 
 function loadStoredAccessCode(): string {
   try {
@@ -64,59 +66,56 @@ function formatDate(iso: string) {
   }
 }
 
-function FileThumbnail({ doc }: { doc: Doc }) {
-  const kind = doc.kind || "file";
-  const label =
-    kind === "image"
-      ? "IMG"
-      : kind === "pdf"
-        ? "PDF"
-        : kind === "video"
-          ? "VID"
-          : kind === "audio"
-            ? "AUD"
-            : kind === "doc"
-              ? "DOC"
-              : kind === "sheet"
-                ? "XLS"
-                : kind === "presentation"
-                  ? "PPT"
-                  : "FILE";
+function kindLabel(kind?: FileKind) {
+  switch (kind) {
+    case "image":
+      return "IMG";
+    case "pdf":
+      return "PDF";
+    case "video":
+      return "VID";
+    case "audio":
+      return "AUD";
+    case "doc":
+      return "DOC";
+    case "sheet":
+      return "XLS";
+    case "presentation":
+      return "PPT";
+    default:
+      return "FILE";
+  }
+}
 
-  const tone =
-    kind === "pdf"
-      ? "bg-red-500/20 text-red-200 border-red-500/40"
-      : kind === "doc"
-        ? "bg-blue-500/20 text-blue-200 border-blue-500/40"
-        : kind === "sheet"
-          ? "bg-emerald-500/20 text-emerald-200 border-emerald-500/40"
-          : kind === "presentation"
-            ? "bg-orange-500/20 text-orange-200 border-orange-500/40"
-            : kind === "video"
-              ? "bg-purple-500/20 text-purple-200 border-purple-500/40"
-              : kind === "audio"
-                ? "bg-pink-500/20 text-pink-200 border-pink-500/40"
-                : "bg-white/10 text-gray-300 border-white/20";
-
-  // Real preview for images and generated PDF first-page thumbs
-  if (doc.thumbnailUrl && (kind === "image" || kind === "pdf")) {
+function FileThumb({ doc, small }: { doc: Doc; small?: boolean }) {
+  const size = small ? "h-8 w-8" : "h-10 w-10";
+  if (doc.thumbnailUrl && (doc.kind === "image" || doc.kind === "pdf")) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={doc.thumbnailUrl}
         alt=""
-        className="h-14 w-14 sm:h-16 sm:w-16 shrink-0 rounded-xl object-cover border border-white/15 bg-black"
+        className={`${size} shrink-0 rounded-md object-cover border border-white/15 bg-black`}
       />
     );
   }
-
   return (
     <div
-      className={`h-14 w-14 sm:h-16 sm:w-16 shrink-0 rounded-xl border flex items-center justify-center text-[11px] sm:text-xs font-black tracking-wide ${tone}`}
-      aria-hidden
+      className={`${size} shrink-0 rounded-md border border-white/20 bg-white/10 text-[9px] font-black flex items-center justify-center text-gray-300`}
     >
-      {label}
+      {kindLabel(doc.kind)}
     </div>
+  );
+}
+
+function isBrowserViewable(doc: Doc) {
+  const kind = doc.kind || "file";
+  return (
+    kind === "pdf" ||
+    kind === "image" ||
+    kind === "video" ||
+    kind === "audio" ||
+    (doc.contentType || "").startsWith("text/")
   );
 }
 
@@ -128,10 +127,16 @@ export default function DocsPage() {
 
   const [documents, setDocuments] = useState<Doc[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
-
-  const [filterCategory, setFilterCategory] = useState("");
   const [query, setQuery] = useState("");
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [collapsedCats, setCollapsedCats] = useState<Record<string, boolean>>(
+    {}
+  );
+  const [treeCollapsed, setTreeCollapsed] = useState(false);
+
+  const [viewUrl, setViewUrl] = useState<string | null>(null);
+  const [viewLoading, setViewLoading] = useState(false);
+  const [viewError, setViewError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const authHeaders = useCallback(
@@ -147,7 +152,6 @@ export default function DocsPage() {
   const load = useCallback(async () => {
     setError(null);
     const params = new URLSearchParams();
-    if (filterCategory) params.set("category", filterCategory);
     if (query.trim()) params.set("q", query.trim());
 
     const res = await fetch(`/api/docs?${params.toString()}`, {
@@ -169,12 +173,24 @@ export default function DocsPage() {
 
     setNeedsAccess(Boolean(data.accessRequired));
     setAccessReady(true);
-    setDocuments(data.documents || []);
+    const docs = (data.documents || []) as Doc[];
+    setDocuments(docs);
     setCategories(data.categories || []);
-  }, [authHeaders, filterCategory, query]);
+
+    // Keep selection if still present; otherwise pick first doc
+    setSelectedId((prev) => {
+      if (prev && docs.some((d) => d.id === prev)) return prev;
+      return docs[0]?.id ?? null;
+    });
+  }, [authHeaders, query]);
 
   useEffect(() => {
     setAccessCode(loadStoredAccessCode());
+    try {
+      setTreeCollapsed(localStorage.getItem(TREE_COLLAPSED_KEY) === "1");
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   useEffect(() => {
@@ -183,6 +199,56 @@ export default function DocsPage() {
     }, 0);
     return () => clearTimeout(t);
   }, [load]);
+
+  // Deep link ?id=
+  useEffect(() => {
+    try {
+      const id = new URLSearchParams(window.location.search).get("id");
+      if (id) setSelectedId(id);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const selectedDoc = useMemo(
+    () => documents.find((d) => d.id === selectedId) || null,
+    [documents, selectedId]
+  );
+
+  // Load signed view URL when selection changes
+  useEffect(() => {
+    if (!selectedDoc || !accessReady) {
+      setViewUrl(null);
+      return;
+    }
+
+    let cancelled = false;
+    setViewLoading(true);
+    setViewError(null);
+    setViewUrl(null);
+
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/docs/download?id=${encodeURIComponent(selectedDoc.id)}&expires=3600`,
+          { headers: authHeaders() }
+        );
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Could not open document");
+        if (!cancelled) setViewUrl(data.url);
+      } catch (err) {
+        if (!cancelled) {
+          setViewError(err instanceof Error ? err.message : "Viewer failed");
+        }
+      } finally {
+        if (!cancelled) setViewLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedDoc, accessReady, authHeaders]);
 
   async function handleAccessSubmit(e: FormEvent) {
     e.preventDefault();
@@ -195,20 +261,62 @@ export default function DocsPage() {
     await load();
   }
 
-  async function handleDownload(doc: Doc) {
-    setError(null);
+  function toggleTreeCollapsed() {
+    setTreeCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(TREE_COLLAPSED_KEY, next ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  }
+
+  function toggleCategory(cat: string) {
+    setCollapsedCats((prev) => ({ ...prev, [cat]: !prev[cat] }));
+  }
+
+  async function handleDownload() {
+    if (!selectedDoc) return;
+    setViewError(null);
     try {
       const res = await fetch(
-        `/api/docs/download?id=${encodeURIComponent(doc.id)}`,
+        `/api/docs/download?id=${encodeURIComponent(selectedDoc.id)}&expires=600`,
         { headers: authHeaders() }
       );
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Download failed");
-      window.open(data.url, "_blank", "noopener,noreferrer");
+      // Force download via temporary anchor when possible
+      const a = document.createElement("a");
+      a.href = data.url;
+      a.download = data.filename || selectedDoc.originalFilename;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Download failed");
+      setViewError(err instanceof Error ? err.message : "Download failed");
     }
   }
+
+  const tree = useMemo(() => {
+    const byCat = new Map<string, Doc[]>();
+    for (const cat of categories) byCat.set(cat, []);
+    for (const doc of documents) {
+      if (!byCat.has(doc.category)) byCat.set(doc.category, []);
+      byCat.get(doc.category)!.push(doc);
+    }
+    // Sort docs in each category
+    for (const [, list] of byCat) {
+      list.sort((a, b) => a.title.localeCompare(b.title));
+    }
+    // Categories with docs first, then empty
+    return [...byCat.entries()]
+      .filter(([, list]) => list.length > 0 || !query.trim())
+      .sort(([a], [b]) => a.localeCompare(b));
+  }, [documents, categories, query]);
 
   if (!accessReady) {
     if (needsAccess) {
@@ -251,140 +359,344 @@ export default function DocsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-black text-white">
-      <div className="max-w-4xl mx-auto px-4 py-6 sm:px-6 sm:py-8">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <Link
-            href="/"
-            className="text-sm text-gray-400 hover:text-[#7bbc07] underline"
-          >
-            ← Tech portal home
-          </Link>
-          <Link
-            href="/docs/upload"
-            className="rounded-xl bg-[#7bbc07] text-black font-bold px-4 py-2.5 text-sm sm:text-base"
-          >
-            Upload document
-          </Link>
-        </div>
-
-        <header className="mb-6">
-          <p className="text-[#7bbc07] font-semibold tracking-wide uppercase text-sm">
+    <main className="h-[100dvh] bg-black text-white flex flex-col overflow-hidden">
+      {/* Top bar */}
+      <header className="shrink-0 border-b border-white/10 px-3 sm:px-4 py-3 flex flex-wrap items-center gap-2 sm:gap-3">
+        <Link
+          href="/"
+          className="text-xs sm:text-sm text-gray-400 hover:text-[#7bbc07] underline"
+        >
+          Home
+        </Link>
+        <div className="hidden sm:block h-4 w-px bg-white/15" />
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] sm:text-xs text-[#7bbc07] font-semibold uppercase tracking-wide">
             Apostolic Life · Tech Department
           </p>
-          <h1 className="text-3xl sm:text-4xl font-black uppercase tracking-tight">
+          <h1 className="text-base sm:text-xl font-black uppercase tracking-tight truncate">
             Apostolic Worship Documentation
           </h1>
-          <p className="text-gray-400 mt-1">
-            Find production docs, manuals, and runbooks.
-          </p>
-        </header>
+        </div>
+        <Link
+          href="/docs/upload"
+          className="rounded-xl bg-[#7bbc07] text-black font-bold px-3 sm:px-4 py-2 text-sm"
+        >
+          Upload
+        </Link>
+      </header>
 
-        {error && (
-          <div className="mb-4 rounded-xl border border-red-500/40 bg-red-500/15 px-4 py-3 text-sm text-red-200">
-            {error}
+      {error && (
+        <div className="shrink-0 mx-3 mt-3 rounded-xl border border-red-500/40 bg-red-500/15 px-4 py-2 text-sm text-red-200">
+          {error}
+        </div>
+      )}
+
+      <div className="flex-1 min-h-0 flex relative">
+        {/* Tree panel */}
+        <aside
+          className={`shrink-0 border-r border-white/10 bg-[#0a0a0a] flex flex-col transition-all duration-200 ease-out ${
+            treeCollapsed
+              ? "w-0 opacity-0 overflow-hidden pointer-events-none"
+              : "w-[min(100%,20rem)] sm:w-80 opacity-100"
+          }`}
+        >
+          <div className="p-3 border-b border-white/10 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-bold uppercase tracking-wide text-gray-400">
+                Library
+              </span>
+              <button
+                type="button"
+                onClick={toggleTreeCollapsed}
+                className="text-xs text-gray-400 hover:text-white border border-white/15 rounded-lg px-2 py-1"
+                title="Hide library panel"
+              >
+                Hide
+              </button>
+            </div>
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search docs…"
+              className="w-full rounded-lg bg-black border border-white/20 px-3 py-2 text-sm focus:outline-none focus:border-[#7bbc07]"
+            />
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-2">
+            {tree.length === 0 && (
+              <p className="text-sm text-gray-500 p-3 text-center">
+                No documents.
+                <br />
+                <Link href="/docs/upload" className="text-[#7bbc07] underline">
+                  Upload one
+                </Link>
+              </p>
+            )}
+
+            {tree.map(([category, docs]) => {
+              const collapsed = collapsedCats[category];
+              return (
+                <div key={category} className="mb-1">
+                  <button
+                    type="button"
+                    onClick={() => toggleCategory(category)}
+                    className="w-full flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-white/5 text-left"
+                  >
+                    <span className="text-gray-500 text-xs w-3">
+                      {collapsed ? "▸" : "▾"}
+                    </span>
+                    <span className="text-sm font-bold text-[#b6e86a] truncate">
+                      {category}
+                    </span>
+                    <span className="ml-auto text-[10px] text-gray-500">
+                      {docs.length}
+                    </span>
+                  </button>
+
+                  {!collapsed && (
+                    <ul className="ml-2 border-l border-white/10 pl-1">
+                      {docs.map((doc) => {
+                        const active = doc.id === selectedId;
+                        return (
+                          <li key={doc.id}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedId(doc.id);
+                                // On small screens, auto-hide tree after select
+                                if (
+                                  typeof window !== "undefined" &&
+                                  window.innerWidth < 768
+                                ) {
+                                  setTreeCollapsed(true);
+                                  try {
+                                    localStorage.setItem(TREE_COLLAPSED_KEY, "1");
+                                  } catch {
+                                    /* ignore */
+                                  }
+                                }
+                              }}
+                              className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg text-left transition-colors ${
+                                active
+                                  ? "bg-[#7bbc07]/20 border border-[#7bbc07]/40"
+                                  : "hover:bg-white/5 border border-transparent"
+                              }`}
+                            >
+                              <FileThumb doc={doc} small />
+                              <span className="min-w-0">
+                                <span className="block text-sm font-semibold truncate">
+                                  {doc.title}
+                                </span>
+                                <span className="block text-[10px] text-gray-500 truncate">
+                                  {doc.originalFilename}
+                                </span>
+                              </span>
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </aside>
+
+        {/* Collapsed tree rail */}
+        {treeCollapsed && (
+          <div className="shrink-0 w-11 border-r border-white/10 bg-[#0a0a0a] flex flex-col items-center py-3 gap-2">
+            <button
+              type="button"
+              onClick={toggleTreeCollapsed}
+              className="w-8 h-8 rounded-lg border border-white/20 hover:bg-white/10 text-sm font-bold"
+              title="Show library panel"
+            >
+              ›
+            </button>
+            <span
+              className="text-[10px] uppercase tracking-widest text-gray-500"
+              style={{ writingMode: "vertical-rl" }}
+            >
+              Library
+            </span>
           </div>
         )}
 
-        <div className="flex flex-col sm:flex-row gap-2 mb-4">
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search title, description, uploader…"
-            className="flex-1 rounded-xl bg-black border border-white/20 px-4 py-3 focus:outline-none focus:border-[#7bbc07]"
-          />
-          <select
-            value={filterCategory}
-            onChange={(e) => setFilterCategory(e.target.value)}
-            className="rounded-xl bg-black border border-white/20 px-4 py-3 focus:outline-none focus:border-[#7bbc07]"
-          >
-            <option value="">All categories</option>
-            {categories.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        </div>
+        {/* Viewer */}
+        <section className="flex-1 min-w-0 flex flex-col bg-black">
+          {!selectedDoc ? (
+            <div className="flex-1 flex items-center justify-center text-gray-500 p-6 text-center">
+              Select a document from the library to view it here.
+            </div>
+          ) : (
+            <>
+              <div className="shrink-0 border-b border-white/10 px-3 sm:px-4 py-3 flex flex-wrap items-start gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2 mb-1">
+                    <span className="rounded-full bg-[#7bbc07]/20 text-[#b6e86a] border border-[#7bbc07]/40 px-2 py-0.5 text-[10px] font-bold">
+                      {selectedDoc.category}
+                    </span>
+                    <span className="text-[10px] text-gray-500">
+                      {formatBytes(selectedDoc.fileSize)}
+                    </span>
+                  </div>
+                  <h2 className="text-lg sm:text-xl font-black leading-snug truncate">
+                    {selectedDoc.title}
+                  </h2>
+                  <p className="text-xs text-gray-400 mt-0.5 truncate">
+                    {selectedDoc.uploadedBy} · {formatDate(selectedDoc.createdAt)}{" "}
+                    ·{" "}
+                    <span className="font-mono">
+                      {selectedDoc.originalFilename}
+                    </span>
+                  </p>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  {!treeCollapsed ? null : (
+                    <button
+                      type="button"
+                      onClick={toggleTreeCollapsed}
+                      className="md:hidden rounded-xl border border-white/20 px-3 py-2 text-sm font-semibold"
+                    >
+                      Library
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleDownload}
+                    className="rounded-xl bg-[#7bbc07] text-black font-bold px-4 py-2 text-sm"
+                  >
+                    Download
+                  </button>
+                </div>
+              </div>
 
-        <p className="text-sm text-gray-500 mb-3">
-          {documents.length} document{documents.length === 1 ? "" : "s"}
-        </p>
+              {selectedDoc.description?.trim() && (
+                <div className="shrink-0 px-3 sm:px-4 py-2 border-b border-white/10 text-sm text-gray-300 bg-white/[0.03] max-h-24 overflow-y-auto whitespace-pre-wrap">
+                  {selectedDoc.description}
+                </div>
+              )}
 
-        <ul className="space-y-3 pb-12">
-          {documents.length === 0 && (
-            <li className="text-center text-gray-500 py-12">
-              No documents yet.{" "}
-              <Link href="/docs/upload" className="text-[#7bbc07] underline">
-                Upload the first one
-              </Link>
-              .
-            </li>
-          )}
-          {documents.map((doc) => {
-            const open = expandedId === doc.id;
-            return (
-              <li
-                key={doc.id}
-                className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden"
-              >
-                <div className="p-4 sm:p-5">
-                  <div className="flex flex-col sm:flex-row sm:items-start gap-3">
-                    <div className="flex items-start gap-3 min-w-0 flex-1">
-                      <FileThumbnail doc={doc} />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2 mb-1">
-                          <span className="rounded-full bg-[#7bbc07]/20 text-[#b6e86a] border border-[#7bbc07]/40 px-2.5 py-0.5 text-xs font-bold">
-                            {doc.category}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            {formatBytes(doc.fileSize)}
-                          </span>
-                        </div>
-                        <h3 className="text-lg sm:text-xl font-bold leading-snug">
-                          {doc.title}
-                        </h3>
-                        <p className="text-xs text-gray-400 mt-1">
-                          {doc.uploadedBy} · {formatDate(doc.createdAt)} ·{" "}
-                          <span className="font-mono">
-                            {doc.originalFilename}
-                          </span>
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2 shrink-0 pl-[4.25rem] sm:pl-0">
+              <div className="flex-1 min-h-0 relative bg-[#111]">
+                {viewLoading && (
+                  <div className="absolute inset-0 flex items-center justify-center text-gray-400 z-10">
+                    Loading preview…
+                  </div>
+                )}
+                {viewError && (
+                  <div className="absolute inset-0 flex items-center justify-center p-6 z-10">
+                    <div className="max-w-md text-center space-y-3">
+                      <p className="text-red-300 text-sm">{viewError}</p>
                       <button
                         type="button"
-                        onClick={() => setExpandedId(open ? null : doc.id)}
-                        className="rounded-xl border border-white/20 px-3 py-2 text-sm font-semibold hover:bg-white/10"
+                        onClick={handleDownload}
+                        className="rounded-xl bg-[#7bbc07] text-black font-bold px-4 py-2 text-sm"
                       >
-                        {open ? "Hide" : "Details"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDownload(doc)}
-                        className="rounded-xl bg-[#7bbc07] text-black px-3 py-2 text-sm font-bold"
-                      >
-                        Download
+                        Download instead
                       </button>
                     </div>
                   </div>
+                )}
 
-                  {open && (
-                    <div className="mt-4 pt-4 border-t border-white/10">
-                      <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">
-                        {doc.description?.trim()
-                          ? doc.description
-                          : "No description provided."}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+                {!viewLoading && !viewError && viewUrl && (
+                  <DocViewer doc={selectedDoc} url={viewUrl} onDownload={handleDownload} />
+                )}
+              </div>
+            </>
+          )}
+        </section>
       </div>
     </main>
+  );
+}
+
+function DocViewer({
+  doc,
+  url,
+  onDownload,
+}: {
+  doc: Doc;
+  url: string;
+  onDownload: () => void;
+}) {
+  const kind = doc.kind || "file";
+
+  if (kind === "image") {
+    return (
+      <div className="h-full w-full overflow-auto flex items-center justify-center p-4">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={url}
+          alt={doc.title}
+          className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+        />
+      </div>
+    );
+  }
+
+  if (kind === "pdf") {
+    return (
+      <iframe
+        title={doc.title}
+        src={`${url}#view=FitH`}
+        className="h-full w-full border-0 bg-neutral-900"
+      />
+    );
+  }
+
+  if (kind === "video") {
+    return (
+      <div className="h-full w-full flex items-center justify-center p-4">
+        <video
+          src={url}
+          controls
+          className="max-w-full max-h-full rounded-lg"
+        />
+      </div>
+    );
+  }
+
+  if (kind === "audio") {
+    return (
+      <div className="h-full w-full flex items-center justify-center p-6">
+        <audio src={url} controls className="w-full max-w-xl" />
+      </div>
+    );
+  }
+
+  // Office / unknown: try iframe, offer download fallback
+  if (isBrowserViewable(doc) || kind === "file") {
+    // text/*
+    if ((doc.contentType || "").startsWith("text/")) {
+      return (
+        <iframe
+          title={doc.title}
+          src={url}
+          className="h-full w-full border-0 bg-white text-black"
+        />
+      );
+    }
+  }
+
+  return (
+    <div className="h-full w-full flex flex-col">
+      <iframe
+        title={doc.title}
+        src={url}
+        className="flex-1 w-full border-0 bg-neutral-900"
+      />
+      <div className="shrink-0 border-t border-white/10 px-4 py-3 text-center text-sm text-gray-400 bg-black">
+        If this file type doesn’t preview in the browser, use{" "}
+        <button
+          type="button"
+          onClick={onDownload}
+          className="text-[#7bbc07] font-semibold underline"
+        >
+          Download
+        </button>
+        .
+      </div>
+    </div>
   );
 }

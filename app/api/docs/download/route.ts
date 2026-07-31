@@ -19,7 +19,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "id is required" }, { status: 400 });
     }
 
-    const signed = await createSignedDownloadUrl(id, 180);
+    // Longer TTL for in-browser viewing sessions
+    const expires = Number(request.nextUrl.searchParams.get("expires") || "3600");
+    const signed = await createSignedDownloadUrl(
+      id,
+      Number.isFinite(expires) ? Math.min(Math.max(expires, 60), 7200) : 3600
+    );
     return NextResponse.json(signed);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
