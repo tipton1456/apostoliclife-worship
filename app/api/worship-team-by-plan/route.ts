@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { toStandardNameCase } from "@/lib/format-name";
 
 const BASE = "https://api.planningcenteronline.com/services/v2";
 
@@ -77,7 +78,7 @@ export async function GET(req: NextRequest) {
 
         return {
           slot: getSlot(positionName),
-          name: m.attributes?.name || "",
+          name: toStandardNameCase(m.attributes?.name || ""),
           position: displayPosition(positionName),
           image: m.attributes?.photo_thumbnail || null,
           status: m.attributes?.status || "",

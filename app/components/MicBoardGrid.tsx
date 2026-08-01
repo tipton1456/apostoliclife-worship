@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { toStandardNameCase } from "@/lib/format-name";
 import PresonusChannelStatus, { type ChannelState } from "./PresonusChannelStatus";
 
 export type TeamMember = {
@@ -46,9 +47,9 @@ function photoFileName(name: string) {
 }
 
 function firstName(name: string) {
-  const trimmed = name.trim();
-  if (!trimmed) return "";
-  return trimmed.split(/\s+/)[0];
+  const standard = toStandardNameCase(name);
+  if (!standard) return "";
+  return standard.split(/\s+/)[0];
 }
 
 function personPhotoSrc(name: string) {

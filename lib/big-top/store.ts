@@ -1,3 +1,4 @@
+import { toStandardNameCase } from "@/lib/format-name";
 import {
   EVENT_DAYS,
   type AttendeePublic,
@@ -101,6 +102,8 @@ export function toPublicAttendee(record: AttendeeRecord): AttendeePublic {
   const needs = needsBackpack(record.backpack);
   return {
     ...record,
+    attendeeName: toStandardNameCase(record.attendeeName),
+    registrantName: toStandardNameCase(record.registrantName),
     backpackReceivedAt: record.backpackReceivedAt ?? null,
     checkInDay1: record.checkIns["2026-08-01"] ?? null,
     checkInDay2: record.checkIns["2026-08-02"] ?? null,

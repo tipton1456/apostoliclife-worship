@@ -1,3 +1,4 @@
+import { toStandardNameCase } from "@/lib/format-name";
 import { normalizeConfirmationCode } from "./store";
 import type { AttendeeRecord, BigTopStore, UploadMergeResult } from "./types";
 
@@ -97,11 +98,13 @@ export function rowToAttendee(
   return {
     confirmationCode,
     ticket: cell(row, "Ticket"),
-    registrantName: cell(row, "Registrant Name"),
+    registrantName: toStandardNameCase(cell(row, "Registrant Name")),
     registrantEmail: cell(row, "Registrant Email"),
     activeAttending: cell(row, "Active / Attending"),
     attendeeRegistered: cell(row, "Attendee Registered"),
-    attendeeName: cell(row, "Attendee Name") || cell(row, "Registrant Name"),
+    attendeeName: toStandardNameCase(
+      cell(row, "Attendee Name") || cell(row, "Registrant Name")
+    ),
     attendeeEmail: cell(row, "Attendee Email"),
     attendeeStreet: cell(row, "Attendee Street Address"),
     attendeeCity: cell(row, "Attendee City"),

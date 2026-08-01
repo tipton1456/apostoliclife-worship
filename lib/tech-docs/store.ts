@@ -1,3 +1,4 @@
+import { toStandardNameCase } from "@/lib/format-name";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { FileKind, TechDoc, TechDocListItem } from "./types";
 
@@ -80,6 +81,7 @@ function toListItem(
   const { storagePath: _storagePath, ...rest } = doc;
   return {
     ...rest,
+    uploadedBy: toStandardNameCase(doc.uploadedBy),
     kind: getFileKind(doc.contentType, doc.originalFilename),
     thumbnailUrl: extras?.thumbnailUrl ?? null,
   };
@@ -156,7 +158,7 @@ export async function listCategories(): Promise<string[]> {
 
 export async function listUploaders(): Promise<string[]> {
   const meta = await readMeta();
-  return meta.uploaders;
+  return meta.uploaders.map(toStandardNameCase).filter(Boolean);
 }
 
 export async function ensureCategory(name: string): Promise<string> {
@@ -173,16 +175,33 @@ export async function ensureCategory(name: string): Promise<string> {
 }
 
 export async function ensureUploader(name: string): Promise<string> {
-  const trimmed = name.trim();
-  if (!trimmed) throw new Error("Uploader name is required");
+  const standard = toStandardNameCase(name);
+  if (!standard) throw new Error("Uploader name is required");
   const meta = await readMeta();
-  if (!meta.uploaders.includes(trimmed)) {
-    meta.uploaders = [...meta.uploaders, trimmed].sort((a, b) =>
+  // Merge case-insensitive duplicates into standard casing
+  const existing = meta.uploaders.find(
+    (u) => u.toLowerCase() === standard.toLowerCase()
+  );
+  if (!existing) {
+    meta.uploaders = [...meta.uploaders, standard].sort((a, b) =>
       a.localeCompare(b)
     );
     await writeMeta(meta);
+    return standard;
   }
-  return trimmed;
+  if (existing !== standard) {
+    meta.uploaders = meta.uploaders
+      .map((u) => (u.toLowerCase() === standard.toLowerCase() ? standard : u))
+      .sort((a, b) => a.localeCompare(b));
+    // Also normalize stored docs
+    meta.documents = meta.documents.map((d) =>
+      d.uploadedBy.toLowerCase() === standard.toLowerCase()
+        ? { ...d, uploadedBy: standard }
+        : d
+    );
+    await writeMeta(meta);
+  }
+  return standard;
 }
 
 export async function listDocuments(options?: {
@@ -262,7 +281,7 @@ export async function uploadDocument(input: {
   if (!input.file) throw new Error("File is required");
 
   const category = input.category.trim();
-  const uploadedBy = input.uploadedBy.trim();
+  const uploadedBy = toStandardNameCase(input.uploadedBy);
   if (!category) throw new Error("Category is required");
   if (!uploadedBy) throw new Error("Uploader is required");
 
@@ -274,9 +293,13 @@ export async function uploadDocument(input: {
       a.localeCompare(b)
     );
   }
-  if (!meta.uploaders.includes(uploadedBy)) {
+  if (!meta.uploaders.some((u) => u.toLowerCase() === uploadedBy.toLowerCase())) {
     meta.uploaders = [...meta.uploaders, uploadedBy].sort((a, b) =>
       a.localeCompare(b)
+    );
+  } else {
+    meta.uploaders = meta.uploaders.map((u) =>
+      u.toLowerCase() === uploadedBy.toLowerCase() ? uploadedBy : u
     );
   }
 
