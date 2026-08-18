@@ -52,6 +52,11 @@ const songs = [
     artist: "Indiana Bible College",
     filePrefix: "Alabaster Break",
   },
+  {
+    title: "Thank God I'm Free",
+    artist: "Elevation Worship",
+    filePrefix: "Thank God Im Free",
+  },
 ] as const;
 
 const parts = ["Alto", "Tenor", "Soprano"] as const;
@@ -160,7 +165,7 @@ export default function ChoirSundayPage() {
             Songs
           </h3>
 
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 lg:gap-5">
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-3 lg:gap-5">
             {songs.map((song) => (
               <article
                 key={song.title}
