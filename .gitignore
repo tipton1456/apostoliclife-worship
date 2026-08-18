@@ -44,3 +44,6 @@ next-env.d.ts
 
 # Local event imports (attendee PII — do not commit)
 /data/tithely/
+
+# Original uncompressed choir part tracks (use the MP3s in git)
+/public/PART HELPERS/*.wav

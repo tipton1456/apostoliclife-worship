@@ -3,6 +3,12 @@ import Link from "next/link";
 
 const menuItems = [
   {
+    href: "/choir-sunday",
+    title: "Choir Sunday",
+    description:
+      "August 23rd practice schedule and vocal part helpers for visiting churches",
+  },
+  {
     href: "/docs",
     title: "Apostolic Worship Documentation",
     description:
