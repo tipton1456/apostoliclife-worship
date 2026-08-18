@@ -105,16 +105,10 @@ export default function ChoirSundayPage() {
           className="mt-5 h-px w-24 bg-gradient-to-r from-transparent via-[#7bbc07] to-transparent sm:w-40"
         />
 
-        <h2 className="mt-5 w-full max-w-3xl text-center text-sm font-semibold leading-relaxed text-white/90 sm:text-xl">
+        <h2 className="mt-5 w-full max-w-4xl text-center text-sm font-semibold uppercase tracking-[0.18em] text-white/90 sm:text-xl">
           With Special Guests
-          <span className="mt-1 block text-base font-bold text-white sm:text-2xl">
-            LifePoint Church
-          </span>
-          <span className="mt-1 block text-[13px] font-medium leading-snug text-white/80 sm:text-lg">
-            and Tupelo Children&apos;s Mansion
-            <br className="sm:hidden" />
-            <span className="hidden sm:inline"> </span>
-            / Restoration Chapel
+          <span className="mt-2 block text-[13px] font-medium normal-case tracking-normal leading-snug text-white/85 sm:text-lg">
+            LifePoint Church &amp; Tupelo Children&apos;s Mansion / Restoration Chapel
           </span>
         </h2>
 
