@@ -66,7 +66,7 @@ export default async function MicBoardPage() {
   }
 
   return (
-    <main className="mx-auto h-screen w-screen max-h-[1920px] max-w-[1080px] overflow-hidden bg-black p-4 text-white">
+    <main className="mx-auto h-screen w-screen max-h-[1920px] max-w-[1080px] overflow-hidden bg-black px-4 pb-4 pt-0 text-white">
       <MicBoardGrid
         team={team}
         teamRefreshUrl="/api/worship-team"

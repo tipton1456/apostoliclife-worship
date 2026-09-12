@@ -178,32 +178,10 @@ export default function MicBoardGrid({
     };
   }, []);
 
-  const boardBadge = (
-    <div
-      className={`px-3 py-1 text-xs font-bold uppercase ${
-        isPortraitGrid ? "rounded-md" : "rounded-bl-md"
-      } ${
-        isOnline ? "bg-green-500 text-black" : "bg-neutral-800 text-gray-400"
-      }`}
-    >
-      {isOnline ? "Board Online" : "Board Offline"}
-    </div>
-  );
-
   return (
-    <div
-      className={`relative h-full w-full ${
-        isPortraitGrid ? "flex flex-col gap-3" : ""
-      }`}
-    >
-      {isPortraitGrid ? (
-        <div className="flex shrink-0 justify-end">{boardBadge}</div>
-      ) : (
-        <div className="absolute right-0 top-0 z-10">{boardBadge}</div>
-      )}
-
+    <div className="relative h-full w-full">
       <div
-        className={`grid ${isPortraitGrid ? "min-h-0 flex-1 gap-4" : "h-full w-full gap-3"}`}
+        className={`grid h-full w-full ${isPortraitGrid ? "gap-4" : "gap-3"}`}
         style={{
           gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
           gridTemplateRows: `repeat(${rowCount}, minmax(0, 1fr))`,
