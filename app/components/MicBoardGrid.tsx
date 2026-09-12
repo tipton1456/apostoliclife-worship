@@ -95,10 +95,14 @@ function fillSlots(team: TeamMember[]) {
 export default function MicBoardGrid({
   team: initialTeam,
   teamRefreshUrl,
+  columns = SLOT_COUNT,
 }: {
   team: TeamMember[];
   teamRefreshUrl?: string;
+  columns?: number;
 }) {
+  const rowCount = Math.ceil(SLOT_COUNT / columns);
+  const isPortraitGrid = columns < SLOT_COUNT;
   const [team, setTeam] = useState(initialTeam);
   const slots = useMemo(() => fillSlots(team), [team]);
   const [channels, setChannels] = useState<ChannelState[]>([]);
@@ -174,20 +178,35 @@ export default function MicBoardGrid({
     };
   }, []);
 
+  const boardBadge = (
+    <div
+      className={`px-3 py-1 text-xs font-bold uppercase ${
+        isPortraitGrid ? "rounded-md" : "rounded-bl-md"
+      } ${
+        isOnline ? "bg-green-500 text-black" : "bg-neutral-800 text-gray-400"
+      }`}
+    >
+      {isOnline ? "Board Online" : "Board Offline"}
+    </div>
+  );
+
   return (
-    <div className="relative h-full w-full">
-      <div
-        className={`absolute right-0 top-0 z-10 rounded-bl-md px-3 py-1 text-xs font-bold uppercase ${
-          isOnline ? "bg-green-500 text-black" : "bg-neutral-800 text-gray-400"
-        }`}
-      >
-        {isOnline ? "Board Online" : "Board Offline"}
-      </div>
+    <div
+      className={`relative h-full w-full ${
+        isPortraitGrid ? "flex flex-col gap-3" : ""
+      }`}
+    >
+      {isPortraitGrid ? (
+        <div className="flex shrink-0 justify-end">{boardBadge}</div>
+      ) : (
+        <div className="absolute right-0 top-0 z-10">{boardBadge}</div>
+      )}
 
       <div
-        className="grid h-full w-full gap-3"
+        className={`grid ${isPortraitGrid ? "min-h-0 flex-1 gap-4" : "h-full w-full gap-3"}`}
         style={{
-          gridTemplateColumns: `repeat(${SLOT_COUNT}, minmax(0, 1fr))`,
+          gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+          gridTemplateRows: `repeat(${rowCount}, minmax(0, 1fr))`,
         }}
       >
         {slots.map((person) => {
@@ -212,8 +231,16 @@ export default function MicBoardGrid({
                 />
               </div>
 
-              <div className="min-h-12 bg-neutral-950 px-3 py-2 text-gray-100">
-                <div className="flex items-center justify-center gap-2 text-base font-semibold leading-tight">
+              <div
+                className={`bg-neutral-950 text-gray-100 ${
+                  isPortraitGrid ? "min-h-16 px-3 py-3" : "min-h-12 px-3 py-2"
+                }`}
+              >
+                <div
+                  className={`flex items-center justify-center gap-2 font-semibold leading-tight ${
+                    isPortraitGrid ? "text-xl" : "text-base"
+                  }`}
+                >
                   <span className="tabular-nums text-gray-400">{person.position}</span>
                   <span className="text-gray-600">|</span>
                   <span className="min-w-0 truncate">{displayName}</span>

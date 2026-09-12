@@ -1,5 +1,12 @@
+import type { Viewport } from "next";
 import { headers } from "next/headers";
 import MicBoardGrid, { type TeamMember } from "../components/MicBoardGrid";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#000000",
+};
 
 type WorshipTeamResponse = {
   serviceName?: string;
@@ -48,7 +55,7 @@ export default async function MicBoardPage() {
 
   if (statusMessage) {
     return (
-      <main className="w-screen h-screen max-w-[1920px] max-h-[1080px] mx-auto overflow-hidden bg-black text-white p-6 flex flex-col items-center justify-center text-center">
+      <main className="mx-auto flex h-screen w-screen max-h-[1920px] max-w-[1080px] flex-col items-center justify-center overflow-hidden bg-black p-6 text-center text-white">
         <h1 className="text-6xl font-black uppercase mb-6 text-[#7bbc07] tracking-wide">
           Apostolic Worship Mic Board
         </h1>
@@ -59,8 +66,12 @@ export default async function MicBoardPage() {
   }
 
   return (
-    <main className="w-screen h-screen max-w-[1920px] max-h-[1080px] mx-auto overflow-hidden bg-black text-white p-4">
-      <MicBoardGrid team={team} teamRefreshUrl="/api/worship-team" />
+    <main className="mx-auto h-screen w-screen max-h-[1920px] max-w-[1080px] overflow-hidden bg-black p-4 text-white">
+      <MicBoardGrid
+        team={team}
+        teamRefreshUrl="/api/worship-team"
+        columns={4}
+      />
     </main>
   );
 }
