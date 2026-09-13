@@ -201,11 +201,15 @@ export default function MicBoardGrid({
                 isOnline
               )}`}
             >
-              <div className="flex min-h-0 flex-1 items-start justify-center overflow-hidden bg-neutral-800">
+              <div className="relative min-h-0 flex-1 overflow-hidden bg-neutral-800">
                 <img
                   src={photoSrc}
                   alt={displayName}
-                  className="h-full w-full translate-x-2 object-cover object-top"
+                  className={
+                    isPortraitGrid
+                      ? "h-full w-full origin-top scale-[1.55] object-cover object-top"
+                      : "h-full w-full translate-x-2 object-cover object-top"
+                  }
                 />
               </div>
 
