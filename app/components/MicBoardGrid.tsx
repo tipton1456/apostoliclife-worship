@@ -22,6 +22,7 @@ type WorshipTeamResponse = {
 
 const SLOT_COUNT = 8;
 const TEAM_REFRESH_MS = 30 * 60 * 1000;
+const PAGE_RELOAD_MS = 30 * 60 * 1000;
 const CENTRAL_TIME_ZONE = "America/Chicago";
 
 function isSundayCentral() {
@@ -174,6 +175,16 @@ export default function MicBoardGrid({
 
     return () => {
       isMounted = false;
+      window.clearInterval(interval);
+    };
+  }, []);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      window.location.reload();
+    }, PAGE_RELOAD_MS);
+
+    return () => {
       window.clearInterval(interval);
     };
   }, []);
