@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { sanitizeNextPath } from "@/lib/worship-auth/paths";
+import { MENU_PATH, sanitizeNextPath } from "@/lib/worship-auth/paths";
 
 const fieldClass =
   "mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-white outline-none ring-[#7bbc07] transition focus:ring-2";
 
-export default function LoginForm({ nextPath = "/" }: { nextPath?: string }) {
+export default function LoginForm({ nextPath = MENU_PATH }: { nextPath?: string }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(true);

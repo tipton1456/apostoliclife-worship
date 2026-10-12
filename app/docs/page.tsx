@@ -387,7 +387,7 @@ export default function DocsPage() {
         </div>
         <nav className="shrink-0 flex items-center gap-3 text-xs sm:text-sm">
           <Link
-            href="/"
+            href="/home"
             className="text-gray-400 hover:text-[#7bbc07] underline underline-offset-2"
           >
             Home

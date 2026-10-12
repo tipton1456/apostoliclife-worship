@@ -15,7 +15,7 @@ export default async function ChangePasswordPage({
   const currentUser = await getCurrentWorshipUser();
 
   if (!currentUser?.active) {
-    redirect("/login");
+    redirect("/");
   }
 
   const params = (await searchParams) ?? {};

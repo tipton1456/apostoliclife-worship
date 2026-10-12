@@ -29,8 +29,8 @@ export default async function WorshipUsersPage() {
             <span className="text-neutral-200">npm run auth:migrate</span> after adding a
             Supabase access token or database URL.
           </p>
-          <Link href="/" className="mt-6 inline-block text-sm font-semibold text-[#7bbc07]">
-            Back to the landing page
+          <Link href="/home" className="mt-6 inline-block text-sm font-semibold text-[#7bbc07]">
+            Back to the menu
           </Link>
         </div>
       </main>
@@ -40,7 +40,7 @@ export default async function WorshipUsersPage() {
   const currentUser = await getCurrentWorshipUser();
 
   if (!currentUser?.active) {
-    redirect("/login?next=/admin/users");
+    redirect("/?next=/admin/users");
   }
 
   if (currentUser.mustResetPassword) {
@@ -56,8 +56,8 @@ export default async function WorshipUsersPage() {
           <p className="mt-3 text-neutral-400">
             Only Worship administrators can assign users and feature access.
           </p>
-          <Link href="/" className="mt-6 inline-block text-sm font-semibold text-[#7bbc07]">
-            Back to the landing page
+          <Link href="/home" className="mt-6 inline-block text-sm font-semibold text-[#7bbc07]">
+            Back to the menu
           </Link>
         </div>
       </main>
@@ -79,8 +79,8 @@ export default async function WorshipUsersPage() {
               is connected.
             </p>
           </div>
-          <Link href="/" className="text-sm font-semibold text-[#7bbc07]">
-            Landing page
+          <Link href="/home" className="text-sm font-semibold text-[#7bbc07]">
+            Menu
           </Link>
         </header>
 

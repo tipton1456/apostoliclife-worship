@@ -29,12 +29,13 @@ export async function proxy(request: NextRequest) {
 
   await supabase.auth.getUser();
 
-  const isAdminPath = request.nextUrl.pathname.startsWith("/admin");
+  const pathname = request.nextUrl.pathname;
+  const needsSignIn = pathname.startsWith("/admin") || pathname === "/home" || pathname.startsWith("/home/");
   const hasSessionCookie = request.cookies.getAll().some((cookie) => cookie.name.startsWith("sb-"));
 
-  if (isAdminPath && !hasSessionCookie) {
+  if (needsSignIn && !hasSessionCookie) {
     const loginUrl = request.nextUrl.clone();
-    loginUrl.pathname = "/login";
+    loginUrl.pathname = "/";
     loginUrl.search = "";
     loginUrl.searchParams.set("next", `${request.nextUrl.pathname}${request.nextUrl.search}`);
     const redirectResponse = NextResponse.redirect(loginUrl);
@@ -49,5 +50,5 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   // Keep this off booth routes. A leading "/" matcher also covers every path.
-  matcher: ["/login", "/admin/:path*", "/change-password"],
+  matcher: ["/login", "/home", "/home/:path*", "/admin/:path*", "/change-password"],
 };

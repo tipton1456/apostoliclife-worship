@@ -3,12 +3,12 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { completePasswordReset } from "@/lib/worship-auth/users";
-import { sanitizeNextPath } from "@/lib/worship-auth/paths";
+import { MENU_PATH, sanitizeNextPath } from "@/lib/worship-auth/paths";
 
 const fieldClass =
   "mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-white outline-none ring-[#7bbc07] transition focus:ring-2";
 
-export default function ChangePasswordForm({ nextPath = "/" }: { nextPath?: string }) {
+export default function ChangePasswordForm({ nextPath = MENU_PATH }: { nextPath?: string }) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState("");
