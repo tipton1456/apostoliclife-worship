@@ -1,7 +1,15 @@
 import Image from "next/image";
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getCurrentWorshipUser } from "@/lib/worship-auth/users";
 
 const menuItems = [
+  {
+    href: "/control-panel",
+    title: "Control Panel",
+    description:
+      "PIN-locked booth dashboard for mics, ProPresenter, ATEM, Shure, and Presonus",
+  },
   {
     href: "/choir-sunday",
     title: "Choir Sunday",
@@ -31,9 +39,50 @@ const menuItems = [
   },
 ] as const;
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const currentUser = await getCurrentWorshipUser();
+
+  if (currentUser?.active && currentUser.mustResetPassword) {
+    redirect("/change-password?next=/");
+  }
+
+  const signedIn = Boolean(currentUser?.active);
+  const displayName =
+    [currentUser?.firstName, currentUser?.lastName].filter(Boolean).join(" ") ||
+    currentUser?.email;
+
   return (
-    <main className="min-h-screen bg-black text-white flex flex-col items-center justify-center px-6 py-12">
+    <main className="relative min-h-screen bg-black text-white flex flex-col items-center justify-center px-6 py-20">
+      <div className="absolute inset-x-0 top-0 flex items-center justify-end gap-3 px-6 py-5">
+        {signedIn ? (
+          <>
+            <span className="max-w-[14rem] truncate text-sm text-gray-300">{displayName}</span>
+            {currentUser?.accessLevel === "admin" ? (
+              <Link
+                href="/admin/users"
+                className="rounded-xl border border-white/15 px-4 py-2 text-sm font-semibold text-white hover:border-[#7bbc07]/50"
+              >
+                Users
+              </Link>
+            ) : null}
+            <form action="/auth/logout" method="post">
+              <button
+                type="submit"
+                className="rounded-xl bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/15"
+              >
+                Sign out
+              </button>
+            </form>
+          </>
+        ) : (
+          <Link
+            href="/login"
+            className="rounded-xl bg-[#7bbc07] px-4 py-2 text-sm font-semibold text-neutral-950 hover:bg-[#8ed20a]"
+          >
+            Sign in
+          </Link>
+        )}
+      </div>
       <div className="w-full max-w-2xl flex flex-col items-center text-center">
         <Image
           src="/apostolic-worship-icon.png"

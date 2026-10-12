@@ -8,13 +8,16 @@
     "start": "next start",
     "lint": "eslint",
     "presonus:probe": "node scripts/presonus-probe.mjs",
-    "presonus:bridge": "node scripts/presonus-bridge.mjs"
+    "presonus:bridge": "node scripts/presonus-bridge.mjs",
+    "auth:migrate": "node scripts/apply-worship-auth-migration.mjs"
   },
   "dependencies": {
     "@featherbear/presonus-studiolive-api": "^1.8.0",
     "@napi-rs/canvas": "^1.0.3",
+    "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.111.0",
     "@vercel/blob": "^2.6.1",
+    "atem-connection": "^3.10.2",
     "next": "16.2.6",
     "pdfjs-dist": "^6.2.108",
     "react": "19.2.4",
