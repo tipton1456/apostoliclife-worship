@@ -4,12 +4,16 @@ import { redirect } from "next/navigation";
 import { getCurrentWorshipUser } from "@/lib/worship-auth/users";
 
 const menuItems = [
-  {
-    href: "/control-panel",
-    title: "Control Panel",
-    description:
-      "PIN-locked booth dashboard for mics, ProPresenter, ATEM, Shure, and Presonus",
-  },
+  ...(process.env.NODE_ENV === "development"
+    ? [
+        {
+          href: "/control-panel",
+          title: "Control Panel",
+          description:
+            "PIN-locked booth dashboard for mics, ProPresenter, ATEM, Shure, and Presonus",
+        },
+      ]
+    : []),
   {
     href: "/choir-sunday",
     title: "Choir Sunday",
