@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import WorshipLogo from "@/app/worship-logo";
 import ServeReportView from "@/app/serve-report/serve-report-view";
-import { chicagoMonth, isMonthKey } from "@/lib/serve-report/matrix";
+import { chicagoMonth, isIsoDate, isMonthKey } from "@/lib/serve-report/matrix";
 import { getCurrentWorshipUser } from "@/lib/worship-auth/users";
 
 export const metadata = {
@@ -12,12 +12,17 @@ export const metadata = {
 export default async function ServeReportPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ month?: string }>;
+  searchParams?: Promise<{ month?: string; from?: string; to?: string }>;
 }) {
   const currentUser = await getCurrentWorshipUser();
   const params = (await searchParams) ?? {};
   const month = params.month && isMonthKey(params.month) ? params.month : chicagoMonth();
-  const nextPath = `/serve-report?month=${month}`;
+  const from = params.from && isIsoDate(params.from) ? params.from : "";
+  const to = params.to && isIsoDate(params.to) ? params.to : "";
+  const range = Boolean(from && to && from <= to);
+  const nextPath = range
+    ? `/serve-report?from=${from}&to=${to}`
+    : `/serve-report?month=${month}`;
 
   if (!currentUser?.active) {
     redirect(`/?next=${encodeURIComponent(nextPath)}`);
@@ -46,14 +51,14 @@ export default async function ServeReportPage({
             <p className="text-sm font-semibold uppercase tracking-wide text-[#7bbc07]">
               Apostolic Worship
             </p>
-            <h1 className="text-3xl font-black tracking-tight sm:text-4xl">Monthly Serve Report</h1>
+            <h1 className="text-3xl font-black tracking-tight sm:text-4xl">Serve Report</h1>
             <p className="mt-1 max-w-2xl text-sm text-neutral-400">
               Names down the side, positions across the top, for Band, Worship Team, and Tech.
             </p>
           </div>
         </div>
 
-        <ServeReportView initialMonth={month} />
+        <ServeReportView initialMode={range ? "range" : "month"} initialMonth={month} initialFrom={from} initialTo={to} />
       </div>
     </main>
   );

@@ -7,7 +7,7 @@ import { serveReportToPdf } from "@/lib/serve-report/pdf";
 import { getCurrentWorshipUser } from "@/lib/worship-auth/users";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 120;
 export const runtime = "nodejs";
 
 export async function GET(request: Request) {
@@ -18,14 +18,16 @@ export async function GET(request: Request) {
 
   const url = new URL(request.url);
   const month = url.searchParams.get("month")?.trim() ?? "";
+  const from = url.searchParams.get("from")?.trim() ?? "";
+  const to = url.searchParams.get("to")?.trim() ?? "";
   const format = url.searchParams.get("format")?.trim().toLowerCase() ?? "json";
 
-  if (!month) {
-    return NextResponse.json({ error: "Choose a month." }, { status: 400 });
+  if (!month && !(from && to)) {
+    return NextResponse.json({ error: "Choose a month or a date range." }, { status: 400 });
   }
 
   try {
-    const report = await getServeReport(month);
+    const report = await getServeReport({ month, from, to });
 
     if (format === "json" || format === "") {
       return NextResponse.json(report);

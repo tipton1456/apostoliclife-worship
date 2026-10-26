@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { shiftMonth, teamGroups } from "@/lib/serve-report/matrix";
+import { isIsoDate, servePeriod, shiftMonth, teamGroups, yearToDateRange } from "@/lib/serve-report/matrix";
 import type { ServeReport, ServeTeamName } from "@/lib/serve-report/types";
+
+type ReportMode = "month" | "range";
 
 const TEAM_HEADER: Record<ServeTeamName, string> = {
   Band: "bg-[#14532d] text-white",
@@ -11,20 +13,41 @@ const TEAM_HEADER: Record<ServeTeamName, string> = {
   Tech: "bg-[#155e75] text-white",
 };
 
-export default function ServeReportView({ initialMonth }: { initialMonth: string }) {
+export default function ServeReportView({
+  initialMode,
+  initialMonth,
+  initialFrom,
+  initialTo,
+}: {
+  initialMode: ReportMode;
+  initialMonth: string;
+  initialFrom: string;
+  initialTo: string;
+}) {
   const router = useRouter();
+  const [mode, setMode] = useState<ReportMode>(initialMode);
   const [month, setMonth] = useState(initialMonth);
+  const [from, setFrom] = useState(initialFrom || `${initialMonth}-01`);
+  const [to, setTo] = useState(initialTo);
   const [report, setReport] = useState<ServeReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [exporting, setExporting] = useState<"pdf" | "xlsx" | null>(null);
+  const query = mode === "range" ? `from=${from}&to=${to}` : `month=${month}`;
 
   useEffect(() => {
+    if (mode === "range" && (!isIsoDate(from) || !isIsoDate(to) || from > to)) {
+      setLoading(false);
+      setReport(null);
+      setError("Choose a start date and an end date.");
+      return;
+    }
+
     const controller = new AbortController();
     setLoading(true);
     setError("");
 
-    fetch(`/api/serve-report?month=${month}`, { signal: controller.signal })
+    fetch(`/api/serve-report?${query}`, { signal: controller.signal })
       .then(async (response) => {
         const body = (await response.json()) as ServeReport & { error?: string };
         if (!response.ok) {
@@ -42,18 +65,33 @@ export default function ServeReportView({ initialMonth }: { initialMonth: string
       });
 
     return () => controller.abort();
-  }, [month]);
+  }, [mode, from, to, query]);
 
   function updateMonth(next: string) {
+    setMode("month");
     setMonth(next);
     router.replace(`/serve-report?month=${next}`);
+  }
+
+  function updateRange(nextFrom: string, nextTo: string) {
+    setMode("range");
+    setFrom(nextFrom);
+    setTo(nextTo);
+    if (isIsoDate(nextFrom) && isIsoDate(nextTo) && nextFrom <= nextTo) {
+      router.replace(`/serve-report?from=${nextFrom}&to=${nextTo}`);
+    }
+  }
+
+  function showYearToDate() {
+    const range = yearToDateRange();
+    updateRange(range.from, range.to);
   }
 
   async function download(format: "pdf" | "xlsx") {
     setExporting(format);
     setError("");
     try {
-      const response = await fetch(`/api/serve-report?month=${month}&format=${format}`);
+      const response = await fetch(`/api/serve-report?${query}&format=${format}`);
       if (!response.ok) {
         const body = (await response.json().catch(() => null)) as { error?: string } | null;
         throw new Error(body?.error || "Could not export the report.");
@@ -62,7 +100,7 @@ export default function ServeReportView({ initialMonth }: { initialMonth: string
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `apostolic-worship-serve-report-${month}.${format}`;
+      link.download = `apostolic-worship-serve-report-${report?.month || month}.${format}`;
       link.click();
       URL.revokeObjectURL(url);
     } catch (downloadError) {
@@ -79,28 +117,76 @@ export default function ServeReportView({ initialMonth }: { initialMonth: string
   return (
     <section className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
+        <div className="flex rounded-xl border border-white/15 p-1">
+          <button
+            type="button"
+            onClick={() => updateMonth(month)}
+            className={`rounded-lg px-3 py-1.5 text-sm font-semibold ${mode === "month" ? "bg-white text-black" : "text-neutral-300"}`}
+          >
+            Month
+          </button>
+          <button
+            type="button"
+            onClick={() => updateRange(from || `${month}-01`, to || yearToDateRange().to)}
+            className={`rounded-lg px-3 py-1.5 text-sm font-semibold ${mode === "range" ? "bg-white text-black" : "text-neutral-300"}`}
+          >
+            Dates
+          </button>
+        </div>
+        {mode === "month" ? (
+          <>
+            <button
+              type="button"
+              onClick={() => updateMonth(shiftMonth(month, -1))}
+              className="rounded-xl border border-white/15 px-3 py-2 text-sm font-semibold hover:border-[#7bbc07]/50"
+            >
+              Previous
+            </button>
+            <label className="text-sm text-neutral-300">
+              <span className="sr-only">Month</span>
+              <input
+                type="month"
+                value={month}
+                onChange={(event) => updateMonth(event.target.value)}
+                className="rounded-xl border border-white/15 bg-neutral-900 px-3 py-2 text-white outline-none ring-[#7bbc07] focus:ring-2"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={() => updateMonth(shiftMonth(month, 1))}
+              className="rounded-xl border border-white/15 px-3 py-2 text-sm font-semibold hover:border-[#7bbc07]/50"
+            >
+              Next
+            </button>
+          </>
+        ) : (
+          <>
+            <label className="text-sm text-neutral-300">
+              <span className="mr-2">From</span>
+              <input
+                type="date"
+                value={from}
+                onChange={(event) => updateRange(event.target.value, to)}
+                className="rounded-xl border border-white/15 bg-neutral-900 px-3 py-2 text-white outline-none ring-[#7bbc07] focus:ring-2"
+              />
+            </label>
+            <label className="text-sm text-neutral-300">
+              <span className="mr-2">To</span>
+              <input
+                type="date"
+                value={to}
+                onChange={(event) => updateRange(from, event.target.value)}
+                className="rounded-xl border border-white/15 bg-neutral-900 px-3 py-2 text-white outline-none ring-[#7bbc07] focus:ring-2"
+              />
+            </label>
+          </>
+        )}
         <button
           type="button"
-          onClick={() => updateMonth(shiftMonth(month, -1))}
+          onClick={showYearToDate}
           className="rounded-xl border border-white/15 px-3 py-2 text-sm font-semibold hover:border-[#7bbc07]/50"
         >
-          Previous
-        </button>
-        <label className="text-sm text-neutral-300">
-          <span className="sr-only">Month</span>
-          <input
-            type="month"
-            value={month}
-            onChange={(event) => updateMonth(event.target.value)}
-            className="rounded-xl border border-white/15 bg-neutral-900 px-3 py-2 text-white outline-none ring-[#7bbc07] focus:ring-2"
-          />
-        </label>
-        <button
-          type="button"
-          onClick={() => updateMonth(shiftMonth(month, 1))}
-          className="rounded-xl border border-white/15 px-3 py-2 text-sm font-semibold hover:border-[#7bbc07]/50"
-        >
-          Next
+          Year to date
         </button>
         <button
           type="button"
@@ -120,7 +206,11 @@ export default function ServeReportView({ initialMonth }: { initialMonth: string
         </button>
       </div>
 
-      {loading ? <p className="text-sm text-neutral-300">Loading {month} from Planning Center...</p> : null}
+      {loading ? (
+        <p className="text-sm text-neutral-300">
+          Loading {loadingLabel(mode, month, from, to)} from Planning Center. A long range can take a minute.
+        </p>
+      ) : null}
       {error ? (
         <p role="alert" className="text-sm text-red-300">
           {error}
@@ -187,7 +277,7 @@ export default function ServeReportView({ initialMonth }: { initialMonth: string
                       colSpan={report.columns.length + 2}
                       className="px-4 py-8 text-center text-neutral-400"
                     >
-                      No Band, Worship Team, or Tech assignments in this month.
+                      No Band, Worship Team, or Tech assignments in this range.
                     </td>
                   </tr>
                 ) : (
@@ -279,4 +369,12 @@ export default function ServeReportView({ initialMonth }: { initialMonth: string
       ) : null}
     </section>
   );
+}
+
+function loadingLabel(mode: ReportMode, month: string, from: string, to: string) {
+  try {
+    return servePeriod(mode === "range" ? { from, to } : { month }).label;
+  } catch {
+    return "this range";
+  }
 }

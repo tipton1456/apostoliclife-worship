@@ -74,6 +74,39 @@ export function shiftMonth(month: string, delta: number) {
   return `${nextYear}-${nextMonth}`;
 }
 
+export type ServePeriod = {
+  key: string;
+  label: string;
+  start: string;
+  next: string;
+  after: string;
+  before: string;
+};
+
+export function chicagoToday(date = new Date()) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Chicago",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+export function isIsoDate(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split("-").map(Number);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  return (
+    parsed.getUTCFullYear() === year &&
+    parsed.getUTCMonth() === month - 1 &&
+    parsed.getUTCDate() === day
+  );
+}
+
+export function yearToDateRange(today = chicagoToday()) {
+  return { from: `${today.slice(0, 4)}-01-01`, to: today };
+}
+
 export function monthWindow(month: string) {
   if (!isMonthKey(month)) {
     throw new Error("Choose a valid month.");
@@ -98,6 +131,61 @@ export function monthWindow(month: string) {
     after: shiftIsoDate(start, -3),
     before: shiftIsoDate(next, 3),
   };
+}
+
+export function servePeriod(input: { month?: string; from?: string; to?: string }): ServePeriod {
+  if (input.from || input.to) {
+    if (!input.from || !input.to || !isIsoDate(input.from) || !isIsoDate(input.to)) {
+      throw new Error("Choose a start date and an end date.");
+    }
+    if (input.from > input.to) {
+      throw new Error("The start date has to come before the end date.");
+    }
+    const length =
+      Math.round(
+        (Date.parse(`${input.to}T00:00:00Z`) - Date.parse(`${input.from}T00:00:00Z`)) / 86400000,
+      ) + 1;
+    if (length > 366) {
+      throw new Error("Choose a range of one year or less.");
+    }
+
+    const month = monthWindow(input.from.slice(0, 7));
+    const fullMonth = input.from === month.start && input.to === shiftIsoDate(month.next, -1);
+    const ytd = yearToDateRange();
+    const label = fullMonth
+      ? month.label
+      : input.from === ytd.from && input.to === ytd.to
+        ? `Year to date ${input.from.slice(0, 4)}`
+        : `${formatShortDate(input.from, input.from.slice(0, 4) === input.to.slice(0, 4))} – ${formatShortDate(input.to, false)}`;
+
+    return {
+      key: fullMonth ? month.month : `${input.from}_${input.to}`,
+      label,
+      start: input.from,
+      next: shiftIsoDate(input.to, 1),
+      after: shiftIsoDate(input.from, -3),
+      before: shiftIsoDate(input.to, 4),
+    };
+  }
+
+  const month = monthWindow(input.month ?? "");
+  return {
+    key: month.month,
+    label: month.label,
+    start: month.start,
+    next: month.next,
+    after: month.after,
+    before: month.before,
+  };
+}
+
+function formatShortDate(iso: string, omitYear: boolean) {
+  return new Date(`${iso}T12:00:00Z`).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: omitYear ? undefined : "numeric",
+    timeZone: "UTC",
+  });
 }
 
 export function serviceDay(dates: string, sortDate: string) {

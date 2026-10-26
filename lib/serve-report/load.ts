@@ -5,8 +5,9 @@ import {
   displayPosition,
   formatPersonName,
   isSoloConference,
-  monthWindow,
+  servePeriod,
   serviceDay,
+  type ServePeriod,
 } from "@/lib/serve-report/matrix";
 import type {
   CatalogPosition,
@@ -61,25 +62,27 @@ export class ServeReportError extends Error {
   }
 }
 
-export async function getServeReport(month: string) {
-  const cached = reportCache.get(month);
-  if (cached && Date.now() - cached.at < CACHE_MS) return cached.report;
-
-  const report = await loadServeReport(month);
-  reportCache.set(month, { at: Date.now(), report });
-  return report;
-}
-
-export async function loadServeReport(month: string): Promise<ServeReport> {
-  let window: ReturnType<typeof monthWindow>;
+export async function getServeReport(input: { month?: string; from?: string; to?: string }) {
+  let period: ServePeriod;
   try {
-    window = monthWindow(month);
+    period = servePeriod(input);
   } catch (error) {
     throw new ServeReportError(
-      error instanceof Error ? error.message : "Choose a valid month.",
+      error instanceof Error ? error.message : "Choose a valid date range.",
       400,
     );
   }
+
+  const cached = reportCache.get(period.key);
+  if (cached && Date.now() - cached.at < CACHE_MS) return cached.report;
+
+  const report = await loadServeReport(period);
+  reportCache.set(period.key, { at: Date.now(), report });
+  return report;
+}
+
+export async function loadServeReport(period: ServePeriod): Promise<ServeReport> {
+  const window = period;
 
   const serviceTypes = await loadServiceTypes();
   const teams = await loadTeams(serviceTypes);
@@ -97,7 +100,7 @@ export async function loadServeReport(month: string): Promise<ServeReport> {
   );
 
   return buildServeReport({
-    month: window.month,
+    month: window.key,
     monthLabel: window.label,
     generatedAt: new Date().toLocaleString("en-US", {
       timeZone: "America/Chicago",
@@ -148,7 +151,7 @@ async function pcoFetch(url: string): Promise<JsonApi> {
     return (await response.json()) as JsonApi;
   }
 
-  throw new ServeReportError("Planning Center is busy. Try this month again in a moment.");
+  throw new ServeReportError("Planning Center is busy. Try this range again in a moment.");
 }
 
 async function loadServiceTypes(): Promise<ServiceType[]> {
@@ -213,10 +216,7 @@ async function loadCatalog(teams: Map<string, TeamInfo>) {
   return catalog;
 }
 
-async function loadPlans(
-  services: ServiceType[],
-  window: ReturnType<typeof monthWindow>,
-) {
+async function loadPlans(services: ServiceType[], window: ServePeriod) {
   const plans: ServePlan[] = [];
 
   await mapPool(services, 4, async (service) => {
@@ -227,7 +227,7 @@ async function loadPlans(
     while (url) {
       pages += 1;
       if (pages > 5) {
-        throw new ServeReportError("That month returned too many plans.");
+        throw new ServeReportError("That range returned too many plans.");
       }
 
       const body = await pcoFetch(url);
@@ -280,7 +280,7 @@ async function loadPlans(
 async function loadAssignments(plans: ServePlan[], teams: Map<string, TeamInfo>) {
   const assignments: ServeAssignment[] = [];
 
-  await mapPool(plans, 4, async (plan) => {
+  await mapPool(plans, 8, async (plan) => {
     const [serviceTypeId, planId] = plan.id.split(":");
     const rows = await pcoList(
       `${BASE}/service_types/${serviceTypeId}/plans/${planId}/team_members?per_page=100&filter=not_declined,not_deleted,not_archived`,

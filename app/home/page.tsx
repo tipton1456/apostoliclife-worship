@@ -17,9 +17,9 @@ const menuItems = [
     : []),
   {
     href: "/serve-report",
-    title: "Monthly Serve Report",
+    title: "Serve Report",
     description:
-      "Band, worship team, and tech counts by person and position, by month",
+      "Band, worship team, and tech counts by person and position, for a month or a date range",
   },
   {
     href: "/choir-sunday",
