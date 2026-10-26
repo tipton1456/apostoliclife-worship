@@ -208,7 +208,7 @@ export default function ServeReportView({
 
       {loading ? (
         <p className="text-sm text-neutral-300">
-          Loading {loadingLabel(mode, month, from, to)} from Planning Center. A long range can take a minute.
+          Loading {loadingLabel(mode, month, from, to)} from Planning Center. A long range can take a couple of minutes.
         </p>
       ) : null}
       {error ? (

@@ -87,47 +87,81 @@ function drawReport(doc: PDFKit.PDFDocument, report: ServeReport, logo: Buffer) 
   }
 
   drawTotalRow(doc, report, y, nameWidth, columnWidth, totalWidth);
-  y += 22;
+  drawFooter(doc, report, pageNumber);
+  drawSummary(doc, report, logo, pageNumber);
+}
 
-  if (y + 64 > PAGE_HEIGHT - 20) {
-    drawFooter(doc, report, pageNumber);
+function drawSummary(
+  doc: PDFKit.PDFDocument,
+  report: ServeReport,
+  logo: Buffer,
+  pageNumber: number,
+) {
+  const included = report.plans.filter((plan) => plan.included);
+  const excluded = report.plans.filter((plan) => !plan.included);
+  const width = PAGE_WIDTH - MARGIN * 2;
+  let y = 0;
+
+  const nextPage = (full: boolean) => {
+    if (pageNumber > 0 && y !== 0) drawFooter(doc, report, pageNumber);
     doc.addPage({ size: "LETTER", layout: "landscape", margin: 0 });
     pageNumber += 1;
-    y = drawBanner(doc, report, logo, false);
-  }
+    y = drawBanner(doc, report, logo, full, "Summary");
+  };
 
-  doc.font("Helvetica").fontSize(8).fillColor("#525252");
+  const ensure = (height: number) => {
+    if (y + height > PAGE_HEIGHT - 28) nextPage(false);
+  };
+
+  const write = (text: string, font: string, size: number, color: string, gap = 3) => {
+    doc.font(font).fontSize(size);
+    const height = doc.heightOfString(text, { width });
+    ensure(height + gap);
+    doc.fillColor(color).text(text, MARGIN, y, { width });
+    y += height + gap;
+  };
+
+  nextPage(true);
+  write(
+    `${report.monthLabel}: ${report.people.length} people, ${included.length} services, ${report.grandTotal} scheduled times.`,
+    "Helvetica",
+    10,
+    "#222222",
+    4,
+  );
+  write(
+    `${report.confirmed} confirmed and ${report.unconfirmed} still unconfirmed.`,
+    "Helvetica",
+    10,
+    "#222222",
+    10,
+  );
+
+  write("Notes", "Helvetica-Bold", 12, "#111111", 4);
   for (const note of report.notes) {
-    doc.text(note, MARGIN, y, {
-      width: PAGE_WIDTH - MARGIN * 2,
-      height: 12,
-      lineBreak: false,
-    });
-    y += 12;
+    write(note, "Helvetica", 9, "#404040", 4);
   }
 
-  y += 8;
-  doc.font("Helvetica-Bold").fontSize(10).fillColor("#111111");
-  doc.text("Services counted", MARGIN, y, { lineBreak: false });
-  y += 14;
-  doc.font("Helvetica").fontSize(8).fillColor("#222222");
-
-  for (const plan of report.plans) {
-    if (y > PAGE_HEIGHT - 24) {
-      drawFooter(doc, report, pageNumber);
-      doc.addPage({ size: "LETTER", layout: "landscape", margin: 0 });
-      pageNumber += 1;
-      y = MARGIN;
-    }
-    const status = plan.included ? "Counted" : `Left out · ${plan.excludeReason}`;
+  y += 6;
+  write(`${included.length} services counted`, "Helvetica-Bold", 12, "#111111", 4);
+  for (const plan of included) {
     const title = plan.title ? ` · ${plan.title}` : "";
-    doc.text(
-      `${plan.dateLabel} · ${plan.serviceName}${title} · ${status}`,
-      MARGIN,
-      y,
-      { width: PAGE_WIDTH - MARGIN * 2, height: 12, lineBreak: false },
-    );
-    y += 12;
+    write(`${plan.dateLabel} · ${plan.serviceName}${title}`, "Helvetica", 9, "#222222", 2);
+  }
+
+  if (excluded.length > 0) {
+    y += 8;
+    write(`${excluded.length} left out`, "Helvetica-Bold", 12, "#111111", 4);
+    for (const plan of excluded) {
+      const title = plan.title ? ` · ${plan.title}` : "";
+      write(
+        `${plan.dateLabel} · ${plan.serviceName}${title} · ${plan.excludeReason || "Left out"}`,
+        "Helvetica",
+        9,
+        "#404040",
+        2,
+      );
+    }
   }
 
   drawFooter(doc, report, pageNumber);
@@ -138,6 +172,7 @@ function drawBanner(
   report: ServeReport,
   logo: Buffer,
   full: boolean,
+  title = "Serve Matrix",
 ) {
   const height = full ? 78 : 42;
   doc.rect(0, 0, PAGE_WIDTH, height).fill("#000000");
@@ -149,7 +184,7 @@ function drawBanner(
 
   const textX = logo.length > 0 ? (full ? 84 : 56) : 20;
   doc.fillColor("#FFFFFF").font("Helvetica-Bold").fontSize(full ? 18 : 12);
-  doc.text("Serve Matrix", textX, full ? 18 : 8, { lineBreak: false });
+  doc.text(title, textX, full ? 18 : 8, { lineBreak: false });
   doc.fillColor("#7BBC07").font("Helvetica-Bold").fontSize(full ? 12 : 9);
   doc.text(report.monthLabel, textX, full ? 40 : 24, { lineBreak: false });
   if (full) {

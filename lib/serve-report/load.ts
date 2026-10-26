@@ -129,18 +129,86 @@ function authHeader() {
   return "Basic " + Buffer.from(`${clientId}:${secret}`).toString("base64");
 }
 
+// Planning Center allows about 100 requests per 20 seconds. A year of services
+// is one request per plan, so requests are spaced under that limit and a 429
+// pauses the whole queue for Retry-After instead of retrying in a burst.
+const rate = {
+  limit: 80,
+  periodMs: 20_000,
+  stamps: [] as number[],
+  pauseUntil: 0,
+  tail: Promise.resolve(),
+};
+
+function takeSlot() {
+  const ticket = rate.tail.then(async () => {
+    for (;;) {
+      const now = Date.now();
+      if (now < rate.pauseUntil) {
+        await sleep(rate.pauseUntil - now);
+        continue;
+      }
+      const cutoff = now - rate.periodMs;
+      while (rate.stamps.length > 0 && rate.stamps[0] <= cutoff) rate.stamps.shift();
+      const gap = Math.ceil(rate.periodMs / rate.limit);
+      const last = rate.stamps[rate.stamps.length - 1] ?? 0;
+      if (rate.stamps.length < rate.limit && now - last >= gap) {
+        rate.stamps.push(now);
+        return;
+      }
+      const windowWait = rate.stamps.length >= rate.limit ? rate.stamps[0] + rate.periodMs - now : 0;
+      const gapWait = gap - (now - last);
+      await sleep(Math.max(windowWait, gapWait, 25) + 15);
+    }
+  });
+  rate.tail = ticket.then(
+    () => undefined,
+    () => undefined,
+  );
+  return ticket;
+}
+
+function noteRateHeaders(response: Response) {
+  const limit = Number(response.headers.get("x-pco-api-request-rate-limit"));
+  const period = Number(response.headers.get("x-pco-api-request-rate-period"));
+  const count = Number(response.headers.get("x-pco-api-request-rate-count"));
+  if (Number.isFinite(limit) && limit > 10) rate.limit = Math.floor(limit) - 10;
+  if (Number.isFinite(period) && period > 0) rate.periodMs = period * 1000;
+  if (Number.isFinite(count) && Number.isFinite(limit) && count >= limit - 2) {
+    rate.pauseUntil = Math.max(rate.pauseUntil, Date.now() + 2000);
+  }
+}
+
+function retryDelay(response: Response, attempt: number) {
+  const header = Number(response.headers.get("retry-after"));
+  if (Number.isFinite(header) && header > 0) return Math.ceil(header * 1000) + 250;
+  return response.status === 429 ? 2000 * (attempt + 1) : 500 * (attempt + 1);
+}
+
 async function pcoFetch(url: string): Promise<JsonApi> {
-  for (let attempt = 0; attempt < 6; attempt += 1) {
-    const response = await fetch(url, {
-      headers: {
-        Authorization: authHeader(),
-        Accept: "application/json",
-      },
-      cache: "no-store",
-    });
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    await takeSlot();
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        headers: {
+          Authorization: authHeader(),
+          Accept: "application/json",
+        },
+        cache: "no-store",
+        signal: AbortSignal.timeout(30_000),
+      });
+    } catch {
+      await sleep(500 * (attempt + 1));
+      continue;
+    }
+
+    noteRateHeaders(response);
 
     if (response.status === 429 || response.status >= 500) {
-      await sleep(response.status === 429 ? 2500 : 400 * (attempt + 1));
+      const delay = retryDelay(response, attempt);
+      rate.pauseUntil = Math.max(rate.pauseUntil, Date.now() + delay);
+      await response.body?.cancel().catch(() => undefined);
       continue;
     }
 
@@ -280,7 +348,7 @@ async function loadPlans(services: ServiceType[], window: ServePeriod) {
 async function loadAssignments(plans: ServePlan[], teams: Map<string, TeamInfo>) {
   const assignments: ServeAssignment[] = [];
 
-  await mapPool(plans, 8, async (plan) => {
+  await mapPool(plans, 4, async (plan) => {
     const [serviceTypeId, planId] = plan.id.split(":");
     const rows = await pcoList(
       `${BASE}/service_types/${serviceTypeId}/plans/${planId}/team_members?per_page=100&filter=not_declined,not_deleted,not_archived`,

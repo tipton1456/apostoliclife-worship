@@ -162,37 +162,122 @@ export async function serveReportToXlsx(report: ServeReport, logo: Buffer) {
     };
   }
 
-  const noteRow = totalRowNumber + 2;
-  report.notes.forEach((note, index) => {
-    const cell = sheet.getCell(noteRow + index, 1);
-    cell.value = note;
-    cell.font = { name: "Calibri", size: 10, italic: true, color: { argb: "FF525252" } };
-    sheet.mergeCells(noteRow + index, 1, noteRow + index, Math.min(lastCol, 8));
-  });
-
-  const services = workbook.addWorksheet("Services", {
-    properties: { tabColor: { argb: "FF155E75" } },
-  });
-  services.columns = [
-    { header: "Date", key: "date", width: 16 },
-    { header: "Service", key: "service", width: 22 },
-    { header: "Plan", key: "plan", width: 42 },
-    { header: "Counted", key: "counted", width: 18 },
-  ];
-  services.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
-  services.getRow(1).fill = solid("FF111111");
-
-  for (const plan of report.plans) {
-    services.addRow({
-      date: plan.dateLabel,
-      service: plan.serviceName,
-      plan: plan.title || plan.serviceName,
-      counted: plan.included ? "Yes" : plan.excludeReason || "Left out",
-    });
-  }
+  addSummarySheet(workbook, report);
 
   const buffer = await workbook.xlsx.writeBuffer();
   return Buffer.from(buffer);
+}
+
+function addSummarySheet(workbook: ExcelJS.Workbook, report: ServeReport) {
+  const sheet = workbook.addWorksheet("Summary", {
+    properties: { tabColor: { argb: "FF111111" } },
+    pageSetup: {
+      orientation: "portrait",
+      fitToPage: true,
+      fitToWidth: 1,
+      fitToHeight: 0,
+    },
+  });
+  sheet.columns = [
+    { width: 22 },
+    { width: 24 },
+    { width: 46 },
+    { width: 28 },
+  ];
+
+  const included = report.plans.filter((plan) => plan.included);
+  const excluded = report.plans.filter((plan) => !plan.included);
+
+  const title = sheet.getCell(1, 1);
+  title.value = "Serve Matrix";
+  title.font = { name: "Calibri", size: 20, bold: true, color: { argb: "FF111111" } };
+  sheet.mergeCells(1, 1, 1, 4);
+
+  const period = sheet.getCell(2, 1);
+  period.value = report.monthLabel;
+  period.font = { name: "Calibri", size: 14, bold: true, color: { argb: "FF3F6212" } };
+  sheet.mergeCells(2, 1, 2, 4);
+
+  const generated = sheet.getCell(3, 1);
+  generated.value = `Generated ${report.generatedAt}`;
+  generated.font = { name: "Calibri", size: 11, color: { argb: "FF525252" } };
+  sheet.mergeCells(3, 1, 3, 4);
+
+  const stats = [
+    ["People", report.people.length],
+    ["Services counted", included.length],
+    ["Scheduled times", report.grandTotal],
+  ] as const;
+  stats.forEach(([label, value], index) => {
+    const header = sheet.getCell(5, index + 1);
+    header.value = label;
+    styleHeader(header, "FF111111", "FFFFFFFF");
+    const cell = sheet.getCell(6, index + 1);
+    cell.value = value;
+    cell.font = { name: "Calibri", size: 14, bold: true };
+    cell.alignment = { horizontal: "center" };
+  });
+
+  let row = 8;
+  const notesHeader = sheet.getCell(row, 1);
+  notesHeader.value = "Notes";
+  notesHeader.font = { name: "Calibri", size: 14, bold: true };
+  row += 1;
+  for (const note of report.notes) {
+    const cell = sheet.getCell(row, 1);
+    cell.value = note;
+    cell.font = { name: "Calibri", size: 11, color: { argb: "FF404040" } };
+    cell.alignment = { wrapText: true, vertical: "top" };
+    sheet.mergeCells(row, 1, row, 4);
+    sheet.getRow(row).height = 32;
+    row += 1;
+  }
+
+  row += 1;
+  row = writePlanTable(sheet, row, `${included.length} services counted`, included, false);
+  if (excluded.length > 0) {
+    row += 1;
+    writePlanTable(sheet, row, `${excluded.length} left out`, excluded, true);
+  }
+}
+
+function writePlanTable(
+  sheet: ExcelJS.Worksheet,
+  startRow: number,
+  heading: string,
+  plans: ServeReport["plans"],
+  showReason: boolean,
+) {
+  const title = sheet.getCell(startRow, 1);
+  title.value = heading;
+  title.font = { name: "Calibri", size: 14, bold: true };
+  sheet.mergeCells(startRow, 1, startRow, 4);
+
+  const headers = showReason ? ["Date", "Service", "Plan", "Reason"] : ["Date", "Service", "Plan"];
+  headers.forEach((header, index) => {
+    const cell = sheet.getCell(startRow + 1, index + 1);
+    cell.value = header;
+    styleHeader(cell, "FF111111", "FFFFFFFF");
+  });
+
+  plans.forEach((plan, index) => {
+    const excelRow = sheet.getRow(startRow + 2 + index);
+    const values = [
+      plan.dateLabel,
+      plan.serviceName,
+      plan.title || plan.serviceName,
+      ...(showReason ? [plan.excludeReason || "Left out"] : []),
+    ];
+    values.forEach((value, column) => {
+      const cell = excelRow.getCell(column + 1);
+      cell.value = value;
+      cell.font = { name: "Calibri", size: 11 };
+      cell.alignment = { vertical: "middle", wrapText: true };
+      if (index % 2 === 1) cell.fill = solid("FFF7F7F5");
+    });
+  });
+
+  return startRow + 2 + plans.length;
 }
 
 function styleHeader(cell: ExcelJS.Cell, fill: string, font: string) {

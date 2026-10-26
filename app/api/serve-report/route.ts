@@ -7,7 +7,7 @@ import { serveReportToPdf } from "@/lib/serve-report/pdf";
 import { getCurrentWorshipUser } from "@/lib/worship-auth/users";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 120;
+export const maxDuration = 300;
 export const runtime = "nodejs";
 
 export async function GET(request: Request) {
