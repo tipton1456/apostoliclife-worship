@@ -51,14 +51,14 @@ export default function ServeReportView({
       .then(async (response) => {
         const body = (await response.json()) as ServeReport & { error?: string };
         if (!response.ok) {
-          throw new Error(body.error || "Could not load the serve report.");
+          throw new Error(body.error || "Could not load the serve matrix.");
         }
         setReport(body);
       })
       .catch((fetchError: unknown) => {
         if (fetchError instanceof Error && fetchError.name === "AbortError") return;
         setReport(null);
-        setError(fetchError instanceof Error ? fetchError.message : "Could not load the serve report.");
+        setError(fetchError instanceof Error ? fetchError.message : "Could not load the serve matrix.");
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
@@ -94,17 +94,17 @@ export default function ServeReportView({
       const response = await fetch(`/api/serve-report?${query}&format=${format}`);
       if (!response.ok) {
         const body = (await response.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(body?.error || "Could not export the report.");
+        throw new Error(body?.error || "Could not export the serve matrix.");
       }
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `apostolic-worship-serve-report-${report?.month || month}.${format}`;
+      link.download = `apostolic-worship-serve-matrix-${report?.month || month}.${format}`;
       link.click();
       URL.revokeObjectURL(url);
     } catch (downloadError) {
-      setError(downloadError instanceof Error ? downloadError.message : "Could not export the report.");
+      setError(downloadError instanceof Error ? downloadError.message : "Could not export the serve matrix.");
     } finally {
       setExporting(null);
     }

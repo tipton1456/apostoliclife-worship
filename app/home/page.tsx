@@ -17,7 +17,7 @@ const menuItems = [
     : []),
   {
     href: "/serve-report",
-    title: "Serve Report",
+    title: "Serve Matrix",
     description:
       "Band, worship team, and tech counts by person and position, for a month or a date range",
   },
@@ -103,8 +103,8 @@ export default async function MenuPage() {
           Apostolic Worship Tech Landing Page
         </h1>
         <p className="text-gray-400 text-base sm:text-lg mb-10 max-w-lg">
-          Tools for service production, documentation, mic boards, serve
-          reports, and event check-in.
+          Tools for service production, documentation, mic boards, the serve
+          matrix, and event check-in.
         </p>
 
         <nav className="w-full space-y-3" aria-label="Main menu">

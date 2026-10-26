@@ -31,9 +31,9 @@ export const WORSHIP_FEATURES = [
   },
   {
     key: "serve_report",
-    label: "Serve Report",
+    label: "Serve Matrix",
     href: "/serve-report",
-    description: "Monthly band, worship team, and tech serve counts",
+    description: "Band, worship team, and tech serve counts",
   },
   {
     key: "choir_sunday",

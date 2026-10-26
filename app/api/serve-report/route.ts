@@ -34,7 +34,7 @@ export async function GET(request: Request) {
     }
 
     const logo = await readWorshipLogo();
-    const filename = `apostolic-worship-serve-report-${report.month}`;
+    const filename = `apostolic-worship-serve-matrix-${report.month}`;
 
     if (format === "xlsx") {
       const file = await serveReportToXlsx(report, logo);
@@ -52,7 +52,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ error: "Choose PDF or Excel." }, { status: 400 });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Could not build the serve report.";
+    const message = error instanceof Error ? error.message : "Could not build the serve matrix.";
     const status = error instanceof ServeReportError ? error.status : 500;
     return NextResponse.json({ error: message }, { status });
   }

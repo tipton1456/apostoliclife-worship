@@ -19,7 +19,7 @@ export async function serveReportToXlsx(report: ServeReport, logo: Buffer) {
   workbook.creator = "Apostolic Worship";
   workbook.created = new Date();
 
-  const sheet = workbook.addWorksheet("Serve Report", {
+  const sheet = workbook.addWorksheet("Serve Matrix", {
     views: [{ state: "frozen", xSplit: 1, ySplit: 8, showGridLines: false }],
     properties: { tabColor: { argb: "FF7BBC07" } },
     pageSetup: {
@@ -56,7 +56,7 @@ export async function serveReportToXlsx(report: ServeReport, logo: Buffer) {
   }
 
   const title = sheet.getCell(2, 3);
-  title.value = "Monthly Serve Report";
+  title.value = "Serve Matrix";
   title.font = { name: "Calibri", size: 22, bold: true, color: { argb: "FFFFFFFF" } };
   title.alignment = { vertical: "middle" };
 

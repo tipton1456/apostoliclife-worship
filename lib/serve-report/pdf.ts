@@ -25,7 +25,7 @@ export function serveReportToPdf(report: ServeReport, logo: Buffer) {
       layout: "landscape",
       margin: 0,
       info: {
-        Title: `Apostolic Worship Serve Report ${report.monthLabel}`,
+        Title: `Apostolic Worship Serve Matrix ${report.monthLabel}`,
         Author: "Apostolic Worship",
       },
     });
@@ -149,7 +149,7 @@ function drawBanner(
 
   const textX = logo.length > 0 ? (full ? 84 : 56) : 20;
   doc.fillColor("#FFFFFF").font("Helvetica-Bold").fontSize(full ? 18 : 12);
-  doc.text("Monthly Serve Report", textX, full ? 18 : 8, { lineBreak: false });
+  doc.text("Serve Matrix", textX, full ? 18 : 8, { lineBreak: false });
   doc.fillColor("#7BBC07").font("Helvetica-Bold").fontSize(full ? 12 : 9);
   doc.text(report.monthLabel, textX, full ? 40 : 24, { lineBreak: false });
   if (full) {

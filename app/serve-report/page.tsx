@@ -6,7 +6,7 @@ import { chicagoMonth, isIsoDate, isMonthKey } from "@/lib/serve-report/matrix";
 import { getCurrentWorshipUser } from "@/lib/worship-auth/users";
 
 export const metadata = {
-  title: "Serve Report",
+  title: "Serve Matrix",
 };
 
 export default async function ServeReportPage({
@@ -51,7 +51,7 @@ export default async function ServeReportPage({
             <p className="text-sm font-semibold uppercase tracking-wide text-[#7bbc07]">
               Apostolic Worship
             </p>
-            <h1 className="text-3xl font-black tracking-tight sm:text-4xl">Serve Report</h1>
+            <h1 className="text-3xl font-black tracking-tight sm:text-4xl">Serve Matrix</h1>
             <p className="mt-1 max-w-2xl text-sm text-neutral-400">
               Names down the side, positions across the top, for Band, Worship Team, and Tech.
             </p>
