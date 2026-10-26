@@ -34,7 +34,6 @@ const PREFERRED_POSITIONS: Record<ServeTeamName, string[]> = {
   Band: [
     "Drums",
     "Bass",
-    "Bass Guitar",
     "Electric Guitar",
     "Acoustic Guitar",
     "Keys / MD",
@@ -51,22 +50,8 @@ const PREFERRED_POSITIONS: Record<ServeTeamName, string[]> = {
     "W6 - Alto",
     "W7 - Tenor",
     "W8 - Flex",
-    "Mic 1 - Worship Leader",
-    "Mic 2",
-    "Mic 3",
-    "Mic 4",
   ],
-  Tech: [
-    "Sound",
-    "Audio",
-    "Lyrics",
-    "Lights",
-    "Camera",
-    "Video Switcher",
-    "Producer",
-    "Photography",
-    "Photographer",
-  ],
+  Tech: ["Sound", "Lyrics", "Photography", "Video Switcher"],
 };
 
 export function chicagoMonth(date = new Date()) {
@@ -147,9 +132,25 @@ export function canonicalTeam(name: string): ServeTeamName | null {
 export function displayPosition(team: string, raw: string) {
   const name = raw.trim();
   const key = name.toLowerCase();
-  if (team === "Band" && (key === "aux keys" || key === "organ")) {
-    return "Aux or Organ";
+
+  if (team === "Band") {
+    if (key === "aux keys" || key === "organ") return "Aux or Organ";
+    if (key === "bass" || key === "bass guitar") return "Bass";
+    return name || "Unassigned";
   }
+
+  if (team === "Tech") {
+    if (key === "photography" || key === "photographer") return "Photography";
+    if (key === "sound") return "Sound";
+    if (key === "lyrics") return "Lyrics";
+    if (key === "video switcher") return "Video Switcher";
+    return null;
+  }
+
+  if (team === "Worship Team" && /^mic\s+[1-4](?:\b|[^0-9])/.test(key)) {
+    return null;
+  }
+
   return name || "Unassigned";
 }
 
@@ -165,6 +166,7 @@ export function buildColumns(
 
   for (const position of catalog) {
     const label = displayPosition(position.team, position.name);
+    if (!label) continue;
     const key = columnKey(position.team, label);
     const order = position.serviceRank * 10000 + position.sequence;
     const existing = drafts.get(key);
@@ -265,7 +267,7 @@ export function buildServeReport(input: {
       };
     })
     .filter((person) => person.total > 0)
-    .sort((a, b) => nameSortKey(a.name).localeCompare(nameSortKey(b.name)));
+    .sort((a, b) => a.name.localeCompare(b.name, "en", { sensitivity: "base" }));
 
   const columnTotals = input.columns.map((_, columnIndex) =>
     rows.reduce((sum, person) => sum + person.counts[columnIndex], 0),
@@ -288,7 +290,8 @@ export function buildServeReport(input: {
       "Each number is one scheduled time in that position. A person on Sunday morning and Sunday evening counts twice. Declined assignments are omitted.",
       "Services included: Sunday AM, Sunday PM, Wednesday, and Special Services.",
       "Youth Service is excluded. Solo Conference plans, including Navigating Solo Conference, are excluded.",
-      "Aux Keys and Organ are counted together as Aux or Organ.",
+      "Bass and Bass Guitar count as Bass. Aux Keys and Organ count as Aux or Organ. Photography and Photographer count as Photography.",
+      "Tech columns are Sound, Lyrics, Photography, and Video Switcher. Wednesday mic positions are left out.",
       `${includedPlans} services counted. ${confirmed} confirmed and ${unconfirmed} still unconfirmed.`,
     ],
   };
@@ -316,16 +319,6 @@ export function formatPersonName(input: string) {
       return lower.charAt(0).toUpperCase() + lower.slice(1);
     })
     .join("");
-}
-
-function nameSortKey(name: string) {
-  const parts = name.split(/\s+/).filter(Boolean);
-  const suffix = /^(jr\.?|sr\.?|ii|iii|iv|v)$/i;
-  let lastIndex = parts.length - 1;
-  if (lastIndex > 0 && suffix.test(parts[lastIndex] ?? "")) lastIndex -= 1;
-  const last = parts[lastIndex] ?? name;
-  const first = parts[0] ?? "";
-  return `${last} ${first} ${name}`.toLowerCase();
 }
 
 function shiftIsoDate(iso: string, days: number) {

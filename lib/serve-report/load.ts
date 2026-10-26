@@ -297,12 +297,15 @@ async function loadAssignments(plans: ServePlan[], teams: Map<string, TeamInfo>)
       const personId = relationId(row, "person") || (name ? `name:${name.toLowerCase()}` : "");
       if (!personId || !name) continue;
 
+      const position = displayPosition(team.name, stringAttr(row, "team_position_name"));
+      if (!position) continue;
+
       assignments.push({
         planId: plan.id,
         personId,
         name,
         team: team.name,
-        position: displayPosition(team.name, stringAttr(row, "team_position_name")),
+        position,
         status,
       });
     }
