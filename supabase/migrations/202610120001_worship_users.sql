@@ -27,7 +27,8 @@ create table if not exists public.worship_user_features (
       'manual_board',
       'docs',
       'choir_sunday',
-      'big_top'
+      'big_top',
+      'serve_report'
     )
   )
 );

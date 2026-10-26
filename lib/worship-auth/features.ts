@@ -30,6 +30,12 @@ export const WORSHIP_FEATURES = [
     description: "Tech department docs, manuals, and runbooks",
   },
   {
+    key: "serve_report",
+    label: "Serve Report",
+    href: "/serve-report",
+    description: "Monthly band, worship team, and tech serve counts",
+  },
+  {
     key: "choir_sunday",
     label: "Choir Sunday",
     href: "/choir-sunday",
