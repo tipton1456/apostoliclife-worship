@@ -1,0 +1,23 @@
+import { NextRequest, NextResponse } from "next/server";
+import { photoMetadata } from "@/lib/dropbox/client";
+import { listTagsForPhoto } from "@/lib/photos/tags";
+import { requireWorshipFeatureApi } from "@/lib/worship-auth/guard";
+
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
+export async function GET(request: NextRequest) {
+  const user = await requireWorshipFeatureApi("photos");
+  if (!user) {
+    return NextResponse.json({ error: "Sign in to view photos." }, { status: 401 });
+  }
+
+  try {
+    const photo = await photoMetadata(request.nextUrl.searchParams.get("path") || "");
+    const tags = await listTagsForPhoto(photo.id);
+    return NextResponse.json({ photo, tags });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unable to read that photo.";
+    return NextResponse.json({ error: message }, { status: 400 });
+  }
+}

@@ -1,15 +1,32 @@
+import type { GalleryImage, PhotoDetails } from "@/lib/photos/types";
+
 const IMAGE_EXTENSIONS = new Set(["jpg", "jpeg", "png", "tif", "tiff", "gif", "webp", "bmp"]);
+const RAW_EXTENSIONS = new Set(["cr2", "cr3", "nef", "nrw", "arw", "dng", "raf", "orf", "rw2", "raw", "pef", "srw", "heic", "heif"]);
+
+type DropboxMedia = {
+  ".tag"?: "metadata" | "pending";
+  metadata?: {
+    ".tag"?: string;
+    dimensions?: { width?: number; height?: number };
+    time_taken?: string;
+    location?: { latitude?: number; longitude?: number };
+  };
+};
 
 type DropboxEntry = {
   ".tag": "file" | "folder" | "deleted";
   name: string;
+  id?: string;
   path_display?: string;
   path_lower?: string;
   size?: number;
+  client_modified?: string;
+  server_modified?: string;
+  media_info?: DropboxMedia;
 };
 
 export type GalleryFolder = { name: string; path: string };
-export type GalleryImage = { name: string; path: string; size: number };
+export type { GalleryImage };
 
 export function photoRoot() {
   const root = process.env.DROPBOX_PHOTO_ROOT?.trim() || "";
@@ -19,9 +36,18 @@ export function photoRoot() {
   return root.replace(/\/$/, "");
 }
 
-export function isGalleryImage(name: string) {
+function fileExtension(name: string) {
   const extension = name.split(".").pop()?.toLowerCase() ?? "";
-  return IMAGE_EXTENSIONS.has(extension);
+  return extension === name.toLowerCase() ? "" : extension;
+}
+
+export function isGalleryImage(name: string) {
+  return IMAGE_EXTENSIONS.has(fileExtension(name));
+}
+
+export function isPhotoFile(name: string) {
+  const extension = fileExtension(name);
+  return IMAGE_EXTENSIONS.has(extension) || RAW_EXTENSIONS.has(extension);
 }
 
 export function safePhotoName(name: string) {
@@ -81,22 +107,37 @@ async function accessToken() {
   return body.access_token;
 }
 
-async function dropboxJson<T>(url: string, payload: unknown, token: string): Promise<T> {
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-    cache: "no-store",
-  });
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
-  if (!response.ok) {
-    throw new Error(`Dropbox request failed (${response.status}).`);
+async function dropboxJson<T>(url: string, payload: unknown, token: string): Promise<T> {
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+      cache: "no-store",
+    });
+
+    if (response.status === 429 && attempt < 3) {
+      const retryAfter = Number(response.headers.get("retry-after") || "2");
+      const seconds = Number.isFinite(retryAfter) ? Math.min(Math.max(retryAfter, 1), 20) : 2;
+      await sleep(seconds * 1000);
+      continue;
+    }
+
+    if (!response.ok) {
+      throw new Error(`Dropbox request failed (${response.status}).`);
+    }
+
+    return (await response.json()) as T;
   }
 
-  return (await response.json()) as T;
+  throw new Error("Dropbox request failed (429).");
 }
 
 type DropboxList = {
@@ -105,7 +146,12 @@ type DropboxList = {
   has_more?: boolean;
 };
 
-async function listPhotoPage(token: string, folderPath: string, cursor: string | null) {
+async function listPhotoPage(
+  token: string,
+  folderPath: string,
+  cursor: string | null,
+  options?: { recursive?: boolean; limit?: number },
+) {
   if (cursor) {
     return dropboxJson<DropboxList>(
       "https://api.dropboxapi.com/2/files/list_folder/continue",
@@ -116,9 +162,41 @@ async function listPhotoPage(token: string, folderPath: string, cursor: string |
 
   return dropboxJson<DropboxList>(
     "https://api.dropboxapi.com/2/files/list_folder",
-    { path: folderPath, limit: 200 },
+    {
+      path: folderPath,
+      limit: options?.limit ?? 200,
+      recursive: options?.recursive ?? false,
+    },
     token,
   );
+}
+
+function collectEntries(entries: DropboxEntry[]) {
+  const folders: GalleryFolder[] = [];
+  const images: GalleryImage[] = [];
+
+  for (const entry of entries) {
+    if (!entry.path_display || entry[".tag"] === "deleted") continue;
+    let path = "";
+    try {
+      path = relativePhotoPath(entry.path_display);
+    } catch {
+      continue;
+    }
+    if (entry[".tag"] === "folder") {
+      folders.push({ name: entry.name, path });
+    } else if (entry[".tag"] === "file" && entry.id && isGalleryImage(entry.name)) {
+      images.push({
+        id: entry.id,
+        name: entry.name,
+        path,
+        size: entry.size ?? 0,
+        modified: entry.client_modified ?? entry.server_modified ?? null,
+      });
+    }
+  }
+
+  return { folders, images };
 }
 
 export async function listPhotoFolder(relativePath: string) {
@@ -130,17 +208,9 @@ export async function listPhotoFolder(relativePath: string) {
 
   do {
     const listed: DropboxList = await listPhotoPage(token, folderPath, cursor);
-
-    for (const entry of listed.entries ?? []) {
-      if (!entry.path_display || entry[".tag"] === "deleted") continue;
-      const path = relativePhotoPath(entry.path_display);
-      if (entry[".tag"] === "folder") {
-        folders.push({ name: entry.name, path });
-      } else if (entry[".tag"] === "file" && isGalleryImage(entry.name)) {
-        images.push({ name: entry.name, path, size: entry.size ?? 0 });
-      }
-    }
-
+    const page = collectEntries(listed.entries ?? []);
+    folders.push(...page.folders);
+    images.push(...page.images);
     cursor = listed.has_more ? listed.cursor ?? null : null;
   } while (cursor);
 
@@ -151,6 +221,78 @@ export async function listPhotoFolder(relativePath: string) {
   const parent = current.includes("/") ? current.slice(0, current.lastIndexOf("/")) : current ? "" : null;
 
   return { path: current, parent, folders, images };
+}
+
+export async function listPhotoLibrary() {
+  const folderPath = photoRoot();
+  const token = await accessToken();
+  const folders: GalleryFolder[] = [];
+  const images: { path: string; size: number; photo: boolean }[] = [];
+  let cursor: string | null = null;
+
+  do {
+    const listed: DropboxList = await listPhotoPage(token, folderPath, cursor, { recursive: true, limit: 2000 });
+
+    for (const entry of listed.entries ?? []) {
+      if (!entry.path_display || entry[".tag"] === "deleted") continue;
+      let path = "";
+      try {
+        path = relativePhotoPath(entry.path_display);
+      } catch {
+        continue;
+      }
+      if (entry[".tag"] === "folder") folders.push({ name: entry.name, path });
+      else if (entry[".tag"] === "file") {
+        images.push({ path, size: entry.size ?? 0, photo: isPhotoFile(entry.name) });
+      }
+    }
+
+    cursor = listed.has_more ? listed.cursor ?? null : null;
+  } while (cursor);
+
+  return { folders, images };
+}
+
+function photoDetailsFromFile(file: DropboxEntry): PhotoDetails {
+  if (!file.id || !file.path_display) throw new Error("Unable to read that photo.");
+  const path = relativePhotoPath(file.path_display);
+  const media = file.media_info?.[".tag"] === "metadata" ? file.media_info.metadata : undefined;
+
+  return {
+    id: file.id,
+    name: file.name,
+    path,
+    folder: path.includes("/") ? path.slice(0, path.lastIndexOf("/")) : "",
+    size: file.size ?? 0,
+    modified: file.client_modified ?? null,
+    savedAt: file.server_modified ?? null,
+    taken: media?.time_taken ?? null,
+    width: media?.dimensions?.width ?? null,
+    height: media?.dimensions?.height ?? null,
+    latitude: media?.location?.latitude ?? null,
+    longitude: media?.location?.longitude ?? null,
+  };
+}
+
+async function fetchPhotoMetadata(token: string, relativePath: string) {
+  return dropboxJson<DropboxEntry>(
+    "https://api.dropboxapi.com/2/files/get_metadata",
+    { path: resolvePhotoPath(relativePath), include_media_info: true },
+    token,
+  );
+}
+
+export async function photoMetadata(relativePath: string) {
+  if (!isGalleryImage(relativePath)) throw new Error("That file is not a photo.");
+
+  const token = await accessToken();
+  let file = await fetchPhotoMetadata(token, relativePath);
+  if (file.media_info?.[".tag"] === "pending") {
+    await sleep(500);
+    file = await fetchPhotoMetadata(token, relativePath);
+  }
+
+  return photoDetailsFromFile(file);
 }
 
 export async function photoThumbnail(relativePath: string) {

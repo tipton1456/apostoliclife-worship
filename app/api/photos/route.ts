@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { listPhotoFolder } from "@/lib/dropbox/client";
+import { syncTaggedFiles } from "@/lib/photos/tags";
 import { requireWorshipFeatureApi } from "@/lib/worship-auth/guard";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +14,11 @@ export async function GET(request: NextRequest) {
 
   try {
     const folder = await listPhotoFolder(request.nextUrl.searchParams.get("path") || "");
+    try {
+      await syncTaggedFiles(folder.images);
+    } catch (error) {
+      console.error("photo tag path sync", error instanceof Error ? error.message : "failed");
+    }
     return NextResponse.json(folder);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to load photos.";
