@@ -3,7 +3,7 @@ export const WORSHIP_FEATURES = [
     key: "photos",
     label: "Photos",
     href: "/photos",
-    description: "Browse folders, tag people, and upload pictures",
+    description: "Browse folders, find faces, and tag people",
   },
   {
     key: "serve_report",

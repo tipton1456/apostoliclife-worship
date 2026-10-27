@@ -1,8 +1,14 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import PhotoDetail from "@/app/photos/photo-detail";
 import PhotoTree, { type PhotoBrowserMode } from "@/app/photos/photo-tree";
+
+const FaceReview = dynamic(() => import("@/app/photos/face-review"), {
+  ssr: false,
+  loading: () => <p className="mt-8 text-neutral-400">Loading face recognition…</p>,
+});
 import { formatBytes, formatPhotoCount } from "@/lib/photos/format";
 import { buildFolderTree, bumpFolderStats, findFolder } from "@/lib/photos/folder-tree";
 import type { FolderStat, GalleryImage, PersonSummary, PhotoDetails } from "@/lib/photos/types";
@@ -35,6 +41,7 @@ export default function PhotosView() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState("");
   const [savingTag, setSavingTag] = useState(false);
+  const [faceOpen, setFaceOpen] = useState(false);
   const galleryRequest = useRef(0);
   const detailRequest = useRef(0);
   const treeRequest = useRef(0);
@@ -78,6 +85,7 @@ export default function PhotosView() {
 
   const selectFolder = useCallback(async (path: string) => {
     const requestId = ++galleryRequest.current;
+    setFaceOpen(false);
     setMode({ type: "folder", path });
     setExpanded((current) => ({ ...current, [path]: true }));
     setGalleryLoading(true);
@@ -98,6 +106,7 @@ export default function PhotosView() {
 
   const selectPerson = useCallback(async (tag: string) => {
     const requestId = ++galleryRequest.current;
+    setFaceOpen(false);
     setMode({ type: "person", tag });
     setGalleryLoading(true);
     setGalleryError("");
@@ -324,29 +333,48 @@ export default function PhotosView() {
             <p className="mt-1 text-sm text-neutral-400">{subtitle}</p>
           </div>
           {mode.type === "folder" ? (
-            <label className="cursor-pointer rounded-xl bg-[#7bbc07] px-4 py-2 text-sm font-semibold text-neutral-950">
-              {uploading ? `Uploading ${uploading}` : "Upload photos"}
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/tiff,image/gif,image/webp,image/bmp,.jpg,.jpeg,.png,.tif,.tiff,.gif,.webp,.bmp"
-                multiple
-                className="hidden"
-                disabled={Boolean(uploading)}
-                onChange={(event) => {
-                  void uploadFiles(event.target.files);
-                  event.target.value = "";
-                }}
-              />
-            </label>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="rounded-xl border border-white/15 px-4 py-2 text-sm font-semibold text-white hover:bg-white/5"
+                onClick={() => setFaceOpen((open) => !open)}
+              >
+                {faceOpen ? "Close faces" : "Find faces"}
+              </button>
+              <label className="cursor-pointer rounded-xl bg-[#7bbc07] px-4 py-2 text-sm font-semibold text-neutral-950">
+                {uploading ? `Uploading ${uploading}` : "Upload photos"}
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/tiff,image/gif,image/webp,image/bmp,.jpg,.jpeg,.png,.tif,.tiff,.gif,.webp,.bmp"
+                  multiple
+                  className="hidden"
+                  disabled={Boolean(uploading)}
+                  onChange={(event) => {
+                    void uploadFiles(event.target.files);
+                    event.target.value = "";
+                  }}
+                />
+              </label>
+            </div>
           ) : (
             <p className="text-sm text-neutral-500">Photos tagged {mode.tag}</p>
           )}
         </div>
 
-        {galleryError ? <p className="mt-4 text-sm text-red-300">{galleryError}</p> : null}
-        {galleryLoading ? <p className="mt-8 text-neutral-400">Loading photos…</p> : null}
+        {mode.type === "folder" && faceOpen ? (
+          <FaceReview
+            folder={mode.path}
+            folderName={galleryTitle(mode, rootName)}
+            people={people}
+            onPeopleChange={() => void loadPeople()}
+            onClose={() => setFaceOpen(false)}
+          />
+        ) : null}
 
-        {!galleryLoading && images.length === 0 ? (
+        {galleryError ? <p className="mt-4 text-sm text-red-300">{galleryError}</p> : null}
+        {!faceOpen && galleryLoading ? <p className="mt-8 text-neutral-400">Loading photos…</p> : null}
+
+        {!faceOpen && !galleryLoading && images.length === 0 ? (
           <p className="mt-8 text-neutral-400">
             {mode.type === "person"
               ? "No photos are tagged with this person."
@@ -358,7 +386,7 @@ export default function PhotosView() {
           </p>
         ) : null}
 
-        {images.length > 0 ? (
+        {!faceOpen && images.length > 0 ? (
           <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
             {images.map((image) => {
               const selected = selectedId === image.id;

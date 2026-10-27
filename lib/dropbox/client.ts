@@ -199,6 +199,22 @@ function collectEntries(entries: DropboxEntry[]) {
   return { folders, images };
 }
 
+export async function listGallerySubtree(relativePath: string) {
+  const folderPath = resolvePhotoPath(relativePath);
+  const token = await accessToken();
+  const images: GalleryImage[] = [];
+  let cursor: string | null = null;
+
+  do {
+    const listed: DropboxList = await listPhotoPage(token, folderPath, cursor, { recursive: true, limit: 2000 });
+    images.push(...collectEntries(listed.entries ?? []).images);
+    cursor = listed.has_more ? listed.cursor ?? null : null;
+  } while (cursor);
+
+  images.sort((left, right) => left.path.localeCompare(right.path, "en", { sensitivity: "base" }));
+  return images;
+}
+
 export async function listPhotoFolder(relativePath: string) {
   const folderPath = resolvePhotoPath(relativePath);
   const token = await accessToken();
@@ -295,7 +311,7 @@ export async function photoMetadata(relativePath: string) {
   return photoDetailsFromFile(file);
 }
 
-export async function photoThumbnail(relativePath: string) {
+async function dropboxThumbnail(relativePath: string, size: "w256h256" | "w2048h1536") {
   const token = await accessToken();
   const response = await fetch("https://content.dropboxapi.com/2/files/get_thumbnail_v2", {
     method: "POST",
@@ -304,7 +320,7 @@ export async function photoThumbnail(relativePath: string) {
       "Dropbox-API-Arg": JSON.stringify({
         resource: { ".tag": "path", path: resolvePhotoPath(relativePath) },
         format: "jpeg",
-        size: "w256h256",
+        size,
         mode: "bestfit",
       }),
     },
@@ -316,6 +332,15 @@ export async function photoThumbnail(relativePath: string) {
   }
 
   return Buffer.from(await response.arrayBuffer());
+}
+
+export async function photoThumbnail(relativePath: string) {
+  return dropboxThumbnail(relativePath, "w256h256");
+}
+
+export async function photoPreview(relativePath: string) {
+  if (!isGalleryImage(relativePath)) throw new Error("That file is not a photo.");
+  return dropboxThumbnail(relativePath, "w2048h1536");
 }
 
 export async function photoTemporaryLink(relativePath: string) {
