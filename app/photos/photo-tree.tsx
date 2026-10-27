@@ -23,15 +23,26 @@ type PhotoTreeProps = {
 
 function Chevron({ open }: { open: boolean }) {
   return (
-    <svg viewBox="0 0 20 20" className={`h-4 w-4 transition ${open ? "rotate-90" : ""}`} aria-hidden="true">
-      <path
-        d="M7 5l6 5-6 5"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+    <svg viewBox="0 0 12 12" className={`h-2.5 w-2.5 ${open ? "rotate-90" : ""}`} aria-hidden="true">
+      <path d="M3.2 1.6 8.8 6 3.2 10.4z" fill="currentColor" />
+    </svg>
+  );
+}
+
+function FolderIcon({ open }: { open: boolean }) {
+  if (open) {
+    return (
+      <svg viewBox="0 0 16 16" className="h-4 w-4 shrink-0" aria-hidden="true">
+        <path fill="#E8B84A" d="M1 3.2h4.3l1.1 1.1H15v1.4H1.4z" />
+        <path fill="#F8D56A" d="M1.1 6.6 2.3 13h12.2l1.3-6.4z" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg viewBox="0 0 16 16" className="h-4 w-4 shrink-0" aria-hidden="true">
+      <path fill="#E8B84A" d="M1.2 3.1h4.5l1.2 1.3H14.8V13H1.2z" />
+      <path fill="#F8D56A" d="M1.2 5.3h13.6V13H1.2z" />
     </svg>
   );
 }
@@ -58,31 +69,35 @@ function FolderBranch({
 
   return (
     <div>
-      <div className="flex items-start gap-1 pr-2" style={{ paddingLeft: 8 + depth * 14 }}>
+      <div
+        className={`flex items-center pr-2 ${selected ? "bg-white/10" : "hover:bg-white/[0.06]"}`}
+        style={{ paddingLeft: 4 + depth * 16 }}
+        role="treeitem"
+        aria-expanded={hasChildren ? isOpen : undefined}
+        aria-selected={selected}
+      >
         {hasChildren ? (
           <button
             type="button"
-            className="mt-1.5 rounded text-neutral-400 hover:text-white"
+            className="flex h-7 w-4 shrink-0 items-center justify-center text-neutral-400 hover:text-white"
             aria-label={isOpen ? `Collapse ${node.name}` : `Expand ${node.name}`}
-            aria-expanded={isOpen}
             onClick={() => onToggle(node.path)}
           >
             <Chevron open={isOpen} />
           </button>
         ) : (
-          <span className="mt-1.5 inline-block w-4" />
+          <span className="inline-block w-4 shrink-0" />
         )}
         <button
           type="button"
-          className={`min-w-0 flex-1 rounded-lg px-2 py-1.5 text-left ${
-            selected ? "bg-[#7bbc07]/15" : "hover:bg-white/5"
-          }`}
+          className="flex h-7 min-w-0 flex-1 items-center gap-1.5 text-left font-normal"
           aria-current={selected ? "true" : undefined}
           title={totals}
           onClick={() => onSelectFolder(node.path)}
         >
-          <span className="block truncate text-sm font-medium">{node.name}</span>
-          <span className="mt-0.5 block text-xs tabular-nums text-neutral-400">
+          <FolderIcon open={isOpen && hasChildren} />
+          <span className="truncate text-[13px] font-normal text-neutral-100">{node.name}</span>
+          <span className="ml-auto shrink-0 pl-2 text-[11px] font-normal tabular-nums text-neutral-500">
             {formatPhotoCount(node.photoCount)} · {formatBytes(node.sizeBytes)}
           </span>
         </button>
@@ -161,25 +176,18 @@ export default function PhotoTree({
                 <button
                   key={person.tag}
                   type="button"
-                  className={`mx-2 flex w-[calc(100%-1rem)] items-center gap-2 rounded-lg px-2 py-1.5 text-left ${
-                    selected ? "bg-[#7bbc07]/15" : "hover:bg-white/5"
+                  className={`flex h-7 w-full items-center pr-2 text-left font-normal ${
+                    selected ? "bg-white/10" : "hover:bg-white/[0.06]"
                   }`}
+                  style={{ paddingLeft: 4 }}
                   aria-current={selected ? "true" : undefined}
                   onClick={() => onSelectPerson(person.tag)}
                 >
-                  <svg viewBox="0 0 20 20" className="h-4 w-4 shrink-0 text-[#7bbc07]" aria-hidden="true">
-                    <circle cx="10" cy="7" r="3" fill="currentColor" />
-                    <path
-                      d="M4 16c1.2-2.4 3.4-3.5 6-3.5S14.8 13.6 16 16"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.6"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium">{person.tag}</span>
-                    <span className="mt-0.5 block text-xs tabular-nums text-neutral-400">
+                  <span className="inline-block w-4 shrink-0" />
+                  <span className="flex min-w-0 flex-1 items-center gap-1.5">
+                    <FolderIcon open={selected} />
+                    <span className="truncate text-[13px] font-normal text-neutral-100">{person.tag}</span>
+                    <span className="ml-auto shrink-0 pl-2 text-[11px] font-normal tabular-nums text-neutral-500">
                       {formatPhotoCount(person.count)} · {formatBytes(person.sizeBytes)}
                     </span>
                   </span>
