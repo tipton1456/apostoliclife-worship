@@ -99,6 +99,28 @@ async function dropboxJson<T>(url: string, payload: unknown, token: string): Pro
   return (await response.json()) as T;
 }
 
+type DropboxList = {
+  entries: DropboxEntry[];
+  cursor?: string;
+  has_more?: boolean;
+};
+
+async function listPhotoPage(token: string, folderPath: string, cursor: string | null) {
+  if (cursor) {
+    return dropboxJson<DropboxList>(
+      "https://api.dropboxapi.com/2/files/list_folder/continue",
+      { cursor },
+      token,
+    );
+  }
+
+  return dropboxJson<DropboxList>(
+    "https://api.dropboxapi.com/2/files/list_folder",
+    { path: folderPath, limit: 200 },
+    token,
+  );
+}
+
 export async function listPhotoFolder(relativePath: string) {
   const folderPath = resolvePhotoPath(relativePath);
   const token = await accessToken();
@@ -107,15 +129,7 @@ export async function listPhotoFolder(relativePath: string) {
   let cursor: string | null = null;
 
   do {
-    const listed = await dropboxJson<{
-      entries: DropboxEntry[];
-      cursor?: string;
-      has_more?: boolean;
-    }>(
-      `https://api.dropboxapi.com/2/files/list_folder${cursor ? "/continue" : ""}`,
-      cursor ? { cursor } : { path: folderPath, limit: 200 },
-      token,
-    );
+    const listed: DropboxList = await listPhotoPage(token, folderPath, cursor);
 
     for (const entry of listed.entries ?? []) {
       if (!entry.path_display || entry[".tag"] === "deleted") continue;
