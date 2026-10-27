@@ -17,14 +17,14 @@ const initialState: WorshipActionState = {
 
 export default function CreateUserForm() {
   const [state, formAction] = useActionState(createWorshipUserWithState, initialState);
-  const [accessLevel, setAccessLevel] = useState<"admin" | "member">("member");
+  const [accessLevel, setAccessLevel] = useState<"admin" | "select">("select");
   const formRef = useRef<HTMLFormElement>(null);
   const router = useRouter();
 
   useEffect(() => {
     if (state.status !== "success") return;
     formRef.current?.reset();
-    setAccessLevel("member");
+    setAccessLevel("select");
     router.refresh();
   }, [router, state.status, state.version]);
 
@@ -34,6 +34,14 @@ export default function CreateUserForm() {
         <TextField label="First name" name="firstName" autoComplete="given-name" />
         <TextField label="Last name" name="lastName" autoComplete="family-name" />
         <TextField label="Email" name="email" type="email" required autoComplete="email" />
+        <TextField
+          label="Mobile number"
+          name="phone"
+          type="tel"
+          required
+          autoComplete="tel"
+          placeholder="Used to text a password reset"
+        />
         <TextField
           label="Temporary password"
           name="password"
@@ -55,10 +63,10 @@ export default function CreateUserForm() {
         <select
           name="accessLevel"
           value={accessLevel}
-          onChange={(event) => setAccessLevel(event.target.value === "admin" ? "admin" : "member")}
+          onChange={(event) => setAccessLevel(event.target.value === "admin" ? "admin" : "select")}
           className={fieldClass}
         >
-          <option value="member">Member</option>
+          <option value="select">Select</option>
           <option value="admin">Admin</option>
         </select>
       </label>

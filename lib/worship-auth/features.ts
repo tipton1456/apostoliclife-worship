@@ -1,9 +1,27 @@
 export const WORSHIP_FEATURES = [
   {
-    key: "control_panel",
-    label: "Control Panel",
-    href: "/control-panel",
-    description: "Booth dashboard for mics, ProPresenter, ATEM, Shure, and PreSonus",
+    key: "photos",
+    label: "Photos",
+    href: "/photos",
+    description: "Browse service photography and upload pictures",
+  },
+  {
+    key: "serve_report",
+    label: "Serve Matrix",
+    href: "/serve-report",
+    description: "Band, worship team, and tech counts by person and position",
+  },
+  {
+    key: "choir_sunday",
+    label: "Choir Sunday",
+    href: "/choir-sunday",
+    description: "Choir Sunday practice schedule and part helpers",
+  },
+  {
+    key: "docs",
+    label: "Documentation",
+    href: "/docs",
+    description: "Tech department docs, manuals, and runbooks",
   },
   {
     key: "mic_board",
@@ -24,28 +42,10 @@ export const WORSHIP_FEATURES = [
     description: "Manual mic board",
   },
   {
-    key: "docs",
-    label: "Documentation",
-    href: "/docs",
-    description: "Tech department docs, manuals, and runbooks",
-  },
-  {
-    key: "serve_report",
-    label: "Serve Matrix",
-    href: "/serve-report",
-    description: "Band, worship team, and tech serve counts",
-  },
-  {
-    key: "choir_sunday",
-    label: "Choir Sunday",
-    href: "/choir-sunday",
-    description: "Choir Sunday practice schedule and part helpers",
-  },
-  {
-    key: "big_top",
-    label: "Big Top Check In",
-    href: "/big-top",
-    description: "Event check-in and backpack tracking",
+    key: "control_panel",
+    label: "Control Panel",
+    href: "/control-panel",
+    description: "Booth dashboard for mics, ProPresenter, ATEM, Shure, and PreSonus",
   },
 ] as const;
 

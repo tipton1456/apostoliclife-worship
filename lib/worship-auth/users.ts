@@ -4,13 +4,14 @@ import { revalidatePath } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient, hasSupabaseAdminConfig } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { normalizePhoneNumber } from "@/lib/sms";
 import {
   WORSHIP_FEATURES,
   isWorshipFeatureKey,
   type WorshipFeatureKey,
 } from "@/lib/worship-auth/features";
 
-export type WorshipAccessLevel = "admin" | "member";
+export type WorshipAccessLevel = "admin" | "select";
 
 export type WorshipUser = {
   id: string;
@@ -18,6 +19,7 @@ export type WorshipUser = {
   firstName: string;
   lastName: string;
   accessLevel: WorshipAccessLevel;
+  phone: string;
   features: WorshipFeatureKey[];
   active: boolean;
   mustResetPassword: boolean;
@@ -46,6 +48,7 @@ type WorshipProfileRow = {
   first_name: string | null;
   last_name: string | null;
   access_level: string | null;
+  phone: string | null;
   active: boolean | null;
   must_reset_password: boolean | null;
   created_at: string;
@@ -53,7 +56,7 @@ type WorshipProfileRow = {
 };
 
 const PROFILE_SELECT =
-  "id,email,first_name,last_name,access_level,active,must_reset_password,created_at,worship_user_features(feature)";
+  "id,email,first_name,last_name,access_level,phone,active,must_reset_password,created_at,worship_user_features(feature)";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -77,7 +80,24 @@ function normalizeText(value: FormDataEntryValue | null) {
 }
 
 function parseAccessLevel(value: FormDataEntryValue | null): WorshipAccessLevel {
-  return value === "admin" ? "admin" : "member";
+  return value === "admin" ? "admin" : "select";
+}
+
+function parsePhone(value: FormDataEntryValue | null, required: boolean) {
+  const trimmed = String(value || "").trim();
+
+  if (!trimmed) {
+    if (required) {
+      throw new Error("Enter a mobile number so a password reset can be texted.");
+    }
+    return "";
+  }
+
+  if (!normalizePhoneNumber(trimmed)) {
+    throw new Error("Enter a valid 10-digit mobile number.");
+  }
+
+  return trimmed;
 }
 
 function parseFeatures(formData: FormData): WorshipFeatureKey[] {
@@ -104,7 +124,7 @@ function mapProfile(
   lastSignInAt: string | null = null,
 ): WorshipUser {
   const accessLevel: WorshipAccessLevel =
-    profile.access_level === "admin" ? "admin" : "member";
+    profile.access_level === "admin" ? "admin" : "select";
   const stored = (profile.worship_user_features ?? [])
     .map((row) => row.feature)
     .filter(isWorshipFeatureKey);
@@ -115,6 +135,7 @@ function mapProfile(
     firstName: profile.first_name ?? "",
     lastName: profile.last_name ?? "",
     accessLevel,
+    phone: profile.phone ?? "",
     features: featuresFor(accessLevel, stored),
     active: profile.active !== false,
     mustResetPassword: Boolean(profile.must_reset_password),
@@ -299,6 +320,7 @@ async function saveProfile(
     firstName: string;
     lastName: string;
     accessLevel: WorshipAccessLevel;
+    phone: string;
     active: boolean;
     mustResetPassword: boolean;
     features: WorshipFeatureKey[];
@@ -311,6 +333,7 @@ async function saveProfile(
       first_name: input.firstName,
       last_name: input.lastName,
       access_level: input.accessLevel,
+      phone: input.phone,
       active: input.active,
       must_reset_password: input.mustResetPassword,
     },
@@ -331,6 +354,7 @@ export async function createWorshipUser(formData: FormData) {
   const firstName = normalizeText(formData.get("firstName"));
   const lastName = normalizeText(formData.get("lastName"));
   const accessLevel = parseAccessLevel(formData.get("accessLevel"));
+  const phone = parsePhone(formData.get("phone"), true);
   const features = parseFeatures(formData);
 
   if (!EMAIL_PATTERN.test(email)) {
@@ -393,6 +417,7 @@ export async function createWorshipUser(formData: FormData) {
     firstName,
     lastName,
     accessLevel,
+    phone,
     active: true,
     mustResetPassword: passwordSet,
     features,
@@ -445,6 +470,7 @@ export async function updateWorshipUser(formData: FormData) {
   const lastName = normalizeText(formData.get("lastName"));
   let accessLevel = parseAccessLevel(formData.get("accessLevel"));
   let active = formData.get("active") === "on";
+  const phone = parsePhone(formData.get("phone"), false);
   const features = parseFeatures(formData);
 
   if (!id || !EMAIL_PATTERN.test(email)) {
@@ -490,6 +516,7 @@ export async function updateWorshipUser(formData: FormData) {
     firstName,
     lastName,
     accessLevel,
+    phone,
     active,
     mustResetPassword: password ? true : Boolean(before?.must_reset_password),
     features,

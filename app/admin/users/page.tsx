@@ -74,9 +74,9 @@ export default async function WorshipUsersPage() {
             <p className="text-sm uppercase tracking-[0.3em] text-[#7bbc07]">Administration</p>
             <h1 className="mt-3 text-4xl font-bold tracking-tight">Worship Users</h1>
             <p className="mt-3 max-w-3xl text-neutral-400">
-              Create sign-ins and assign an access level. Administrators can open every
-              feature. Member checkboxes are saved now and will be enforced as each tool
-              is connected.
+              Add people and choose what they can open. Admin can use every area. Select
+              only sees the areas you check. A mobile number is how a forgotten password
+              gets texted.
             </p>
           </div>
           <Link href="/home" className="text-sm font-semibold text-[#7bbc07]">
@@ -120,7 +120,7 @@ export default async function WorshipUsersPage() {
                     <div>
                       <p className="text-xs uppercase tracking-[0.18em] text-neutral-500 lg:hidden">Access</p>
                       <p className={user.active ? "text-neutral-100" : "text-neutral-500"}>
-                        {user.accessLevel === "admin" ? "Admin" : "Member"}
+                        {user.accessLevel === "admin" ? "Admin" : "Select"}
                         {user.active ? "" : " · off"}
                       </p>
                     </div>

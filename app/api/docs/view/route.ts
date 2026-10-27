@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   requestHasAccess,
   unauthorizedResponse,
-} from "@/lib/big-top/auth";
+} from "@/lib/staff-access";
 import { getDocument } from "@/lib/tech-docs/store";
 import { createAdminClient } from "@/lib/supabase/admin";
 

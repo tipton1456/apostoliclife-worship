@@ -3,7 +3,7 @@ import {
   isAccessConfigured,
   requestHasAccess,
   unauthorizedResponse,
-} from "@/lib/big-top/auth";
+} from "@/lib/staff-access";
 import {
   listCategories,
   listDocuments,

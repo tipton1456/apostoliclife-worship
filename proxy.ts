@@ -30,12 +30,21 @@ export async function proxy(request: NextRequest) {
   await supabase.auth.getUser();
 
   const pathname = request.nextUrl.pathname;
-  const needsSignIn =
-    pathname.startsWith("/admin") ||
-    pathname === "/home" ||
-    pathname.startsWith("/home/") ||
-    pathname === "/serve-report" ||
-    pathname.startsWith("/serve-report/");
+  const protectedPaths = [
+    "/admin",
+    "/home",
+    "/serve-report",
+    "/photos",
+    "/docs",
+    "/mic-board",
+    "/select",
+    "/manual-board",
+    "/choir-sunday",
+    "/control-panel",
+  ];
+  const needsSignIn = protectedPaths.some(
+    (path) => pathname === path || pathname.startsWith(`${path}/`),
+  );
   const hasSessionCookie = request.cookies.getAll().some((cookie) => cookie.name.startsWith("sb-"));
 
   if (needsSignIn && !hasSessionCookie) {
@@ -63,5 +72,19 @@ export const config = {
     "/change-password",
     "/serve-report",
     "/serve-report/:path*",
+    "/photos",
+    "/photos/:path*",
+    "/docs",
+    "/docs/:path*",
+    "/mic-board",
+    "/mic-board/:path*",
+    "/select",
+    "/manual-board",
+    "/manual-board/:path*",
+    "/choir-sunday",
+    "/choir-sunday/:path*",
+    "/control-panel",
+    "/control-panel/:path*",
+    "/forgot-password",
   ],
 };

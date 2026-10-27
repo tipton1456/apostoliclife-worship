@@ -56,8 +56,8 @@ export function FeatureChecks({
       <legend className="text-sm font-medium text-neutral-300">Feature access</legend>
       <p className="mt-1 text-xs leading-5 text-neutral-500">
         {disabled
-          ? "Administrators can open every feature."
-          : "Check the tools this person should be allowed to use. Enforcement is added per tool, with documentation next."}
+          ? "Administrators can open every area."
+          : "Check the areas this Select user can open."}
       </p>
       <div className="mt-3 grid gap-2 sm:grid-cols-2">
         {WORSHIP_FEATURES.map((feature) => (

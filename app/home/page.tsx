@@ -1,57 +1,21 @@
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { WORSHIP_FEATURES } from "@/lib/worship-auth/features";
 import { getCurrentWorshipUser } from "@/lib/worship-auth/users";
 import { MENU_PATH } from "@/lib/worship-auth/paths";
 
-const menuItems = [
-  ...(process.env.NODE_ENV === "development"
-    ? [
-        {
-          href: "/control-panel",
-          title: "Control Panel",
-          description:
-            "PIN-locked booth dashboard for mics, ProPresenter, ATEM, Shure, and Presonus",
-        },
-      ]
-    : []),
-  {
-    href: "/serve-report",
-    title: "Serve Matrix",
-    description:
-      "Band, worship team, and tech counts by person and position, for a month or a date range",
-  },
-  {
-    href: "/choir-sunday",
-    title: "Choir Sunday",
-    description:
-      "August 23rd practice schedule and vocal part helpers for visiting churches",
-  },
-  {
-    href: "/docs",
-    title: "Apostolic Worship Documentation",
-    description:
-      "Upload and browse tech department docs, manuals, and runbooks",
-  },
-  {
-    href: "/big-top",
-    title: "Big Top Event Check In",
-    description: "Scan tickets and check in attendees for the Back to School Bash",
-  },
-  {
-    href: "/mic-board",
-    title: "Main Mic Board",
-    description: "Live worship team mic board for the current service",
-  },
-  {
-    href: "/select",
-    title: "Select Mic Board",
-    description: "Choose a service type and plan, then open that mic board",
-  },
-] as const;
-
-export default async function MenuPage() {
+export default async function MenuPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ denied?: string }>;
+}) {
   const currentUser = await getCurrentWorshipUser();
+  const denied = (await searchParams)?.denied === "1";
+  const menuItems = WORSHIP_FEATURES.filter((feature) => {
+    if (feature.key === "control_panel" && process.env.NODE_ENV !== "development") return false;
+    return Boolean(currentUser?.features.includes(feature.key));
+  });
 
   if (!currentUser?.active) {
     redirect(`/?next=${encodeURIComponent(MENU_PATH)}`);
@@ -103,23 +67,29 @@ export default async function MenuPage() {
           Apostolic Worship Tech Landing Page
         </h1>
         <p className="text-gray-400 text-base sm:text-lg mb-10 max-w-lg">
-          Tools for service production, documentation, mic boards, the serve
-          matrix, and event check-in.
+          Tools for service production, photography, documentation, mic boards,
+          and the serve matrix.
         </p>
 
+        {denied ? (
+          <p className="mb-6 text-sm text-amber-200">That area is not turned on for this account.</p>
+        ) : null}
+
         <nav className="w-full space-y-3" aria-label="Main menu">
-          {menuItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="block w-full rounded-2xl border border-white/15 bg-white/5 hover:bg-[#7bbc07]/15 hover:border-[#7bbc07]/50 transition-colors px-6 py-5 text-left"
-            >
-              <div className="text-xl sm:text-2xl font-bold text-white">
-                {item.title}
-              </div>
-              <div className="text-sm text-gray-400 mt-1">{item.description}</div>
-            </Link>
-          ))}
+          {menuItems.length > 0 ? (
+            menuItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="block w-full rounded-2xl border border-white/15 bg-white/5 hover:bg-[#7bbc07]/15 hover:border-[#7bbc07]/50 transition-colors px-6 py-5 text-left"
+              >
+                <div className="text-xl sm:text-2xl font-bold text-white">{item.label}</div>
+                <div className="text-sm text-gray-400 mt-1">{item.description}</div>
+              </Link>
+            ))
+          ) : (
+            <p className="text-sm text-neutral-400">No areas are turned on for this account yet.</p>
+          )}
         </nav>
       </div>
     </main>

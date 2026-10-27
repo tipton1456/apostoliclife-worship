@@ -43,6 +43,14 @@ export default function UserEditor({
           <TextField label="Last name" name="lastName" defaultValue={user.lastName} />
           <TextField label="Email" name="email" type="email" required defaultValue={user.email} />
           <TextField
+            label="Mobile number"
+            name="phone"
+            type="tel"
+            autoComplete="tel"
+            defaultValue={user.phone}
+            placeholder="Used to text a password reset"
+          />
+          <TextField
             label="New password"
             name="password"
             type="password"
@@ -65,11 +73,11 @@ export default function UserEditor({
               value={accessLevel}
               disabled={isSelf}
               onChange={(event) =>
-                setAccessLevel(event.target.value === "admin" ? "admin" : "member")
+                setAccessLevel(event.target.value === "admin" ? "admin" : "select")
               }
               className={fieldClass}
             >
-              <option value="member">Member</option>
+              <option value="select">Select</option>
               <option value="admin">Admin</option>
             </select>
           </label>

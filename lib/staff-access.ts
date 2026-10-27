@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
 /**
- * Optional shared password for Big Top check-in (staff only).
- * Set BIG_TOP_ACCESS_CODE in Vercel env to enable.
- * Clients send it as header `x-big-top-code` or query `?code=`.
+ * Optional shared staff code used by documentation and the booth tools.
+ * Set BIG_TOP_ACCESS_CODE to require it. Clients send `x-big-top-code`.
  */
 export function getAccessCode(): string | null {
   const code = process.env.BIG_TOP_ACCESS_CODE?.trim();
@@ -31,9 +30,8 @@ export function unauthorizedResponse() {
   return NextResponse.json(
     {
       error: "Unauthorized",
-      message:
-        "Big Top check-in requires the staff access code (BIG_TOP_ACCESS_CODE).",
+      message: "Staff access code required.",
     },
-    { status: 401 }
+    { status: 401 },
   );
 }

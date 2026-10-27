@@ -138,6 +138,10 @@ export default function LoginForm({ nextPath = MENU_PATH }: { nextPath?: string 
         {isLoading ? "Signing In..." : "Sign In"}
       </button>
 
+      <a href="/forgot-password" className="block text-center text-sm font-semibold text-[#7bbc07]">
+        Forgot password
+      </a>
+
       {message ? (
         <p role="status" className="text-sm text-neutral-300">
           {message}
