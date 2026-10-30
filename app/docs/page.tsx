@@ -139,6 +139,7 @@ export default function DocsPage() {
   const [viewLoading, setViewLoading] = useState(false);
   const [viewError, setViewError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const authHeaders = useCallback(
     (extra?: HeadersInit): HeadersInit => {
@@ -200,6 +201,10 @@ export default function DocsPage() {
     }, 0);
     return () => clearTimeout(t);
   }, [load]);
+
+  useEffect(() => {
+    setLinkCopied(false);
+  }, [selectedId]);
 
   // Deep link ?id=
   useEffect(() => {
@@ -290,6 +295,18 @@ export default function DocsPage() {
 
   function toggleCategory(cat: string) {
     setCollapsedCats((prev) => ({ ...prev, [cat]: !prev[cat] }));
+  }
+
+  async function copyFileLink() {
+    if (!selectedDoc) return;
+    const url = `${window.location.origin}/file/${selectedDoc.id}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setLinkCopied(true);
+      window.setTimeout(() => setLinkCopied(false), 2000);
+    } catch {
+      setViewError("Unable to copy the file link.");
+    }
   }
 
   async function handleDownload() {
@@ -398,6 +415,14 @@ export default function DocsPage() {
           >
             Upload
           </Link>
+          <button
+            type="button"
+            onClick={() => void copyFileLink()}
+            disabled={!selectedDoc}
+            className="text-[#7bbc07] hover:text-[#b6e86a] underline underline-offset-2 font-semibold disabled:opacity-30 disabled:no-underline"
+          >
+            {linkCopied ? "Link copied" : "Copy file link"}
+          </button>
           <button
             type="button"
             onClick={handleDownload}
