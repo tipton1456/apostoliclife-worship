@@ -71,7 +71,7 @@ function fileResponse(file: Buffer, contentType: string, filename: string) {
 async function readWorshipLogo() {
   try {
     return await readFile(
-      path.join(process.cwd(), "public", "ApostolicWorship_DarkBackGround_Transparent.png"),
+      path.join(process.cwd(), "public", "apostolic-life-logo.png"),
     );
   } catch {
     return Buffer.alloc(0);

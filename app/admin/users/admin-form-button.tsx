@@ -21,7 +21,7 @@ export default function AdminFormButton({
   const variantClass =
     variant === "danger"
       ? "border border-white/10 text-red-300 transition hover:border-red-300/60 hover:bg-red-400/10"
-      : "bg-[#7bbc07] text-neutral-950 transition hover:bg-[#8ed20a]";
+      : "al-fill text-[#101536] transition hover:brightness-110";
 
   return (
     <button

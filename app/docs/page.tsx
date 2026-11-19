@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import WorshipLogo from "@/app/worship-logo";
 import {
   useCallback,
   useEffect,
@@ -356,9 +357,10 @@ export default function DocsPage() {
         <main className="min-h-screen bg-black text-white flex items-center justify-center p-6">
           <form
             onSubmit={handleAccessSubmit}
-            className="w-full max-w-md rounded-2xl border border-white/15 bg-white/5 p-6 space-y-4"
+            className="al-card w-full max-w-md space-y-4 p-6"
           >
-            <h1 className="text-2xl font-black text-[#7bbc07] uppercase">
+            <WorshipLogo href="/home" className="h-10 w-auto" />
+            <h1 className="text-2xl font-black uppercase text-[#c9d3f7]">
               Documentation
             </h1>
             <p className="text-sm text-gray-400">
@@ -369,13 +371,13 @@ export default function DocsPage() {
               value={accessCode}
               onChange={(e) => setAccessCode(e.target.value)}
               placeholder="Access code"
-              className="w-full rounded-xl bg-black border border-white/20 px-4 py-3 focus:outline-none focus:border-[#7bbc07]"
+              className="w-full rounded-xl bg-black border border-white/20 px-4 py-3 focus:outline-none focus:border-[#93a9f5]"
               autoFocus
             />
             {accessError && <p className="text-sm text-red-300">{accessError}</p>}
             <button
               type="submit"
-              className="w-full rounded-xl bg-[#7bbc07] text-black font-bold py-3"
+              className="w-full rounded-xl al-fill text-[#101536] font-bold py-3"
             >
               Unlock
             </button>
@@ -394,9 +396,10 @@ export default function DocsPage() {
     <main className="h-[100dvh] bg-black text-white flex flex-col overflow-hidden">
       {/* Top bar — compact */}
       <header className="shrink-0 border-b border-white/10 px-3 sm:px-4 py-1.5 flex items-center gap-3">
+        <WorshipLogo href="/home" className="h-7 w-auto" />
         <div className="min-w-0 flex-1 flex items-baseline gap-2">
           <h1 className="text-sm sm:text-base font-black uppercase tracking-tight truncate">
-            Apostolic Worship Documentation
+            Documentation
           </h1>
           <span className="hidden sm:inline text-[10px] text-gray-500 truncate">
             Tech Department
@@ -405,13 +408,13 @@ export default function DocsPage() {
         <nav className="shrink-0 flex items-center gap-3 text-xs sm:text-sm">
           <Link
             href="/home"
-            className="text-gray-400 hover:text-[#7bbc07] underline underline-offset-2"
+            className="text-gray-400 hover:text-white underline underline-offset-2"
           >
             Home
           </Link>
           <Link
             href="/docs/upload"
-            className="text-[#7bbc07] hover:text-[#b6e86a] underline underline-offset-2 font-semibold"
+            className="text-[#c9d3f7] hover:text-white underline underline-offset-2 font-semibold"
           >
             Upload
           </Link>
@@ -419,7 +422,7 @@ export default function DocsPage() {
             type="button"
             onClick={() => void copyFileLink()}
             disabled={!selectedDoc}
-            className="text-[#7bbc07] hover:text-[#b6e86a] underline underline-offset-2 font-semibold disabled:opacity-30 disabled:no-underline"
+            className="text-[#c9d3f7] hover:text-white underline underline-offset-2 font-semibold disabled:opacity-30 disabled:no-underline"
           >
             {linkCopied ? "Link copied" : "Copy file link"}
           </button>
@@ -427,7 +430,7 @@ export default function DocsPage() {
             type="button"
             onClick={handleDownload}
             disabled={!selectedDoc}
-            className="text-[#7bbc07] hover:text-[#b6e86a] underline underline-offset-2 font-semibold disabled:opacity-30 disabled:no-underline"
+            className="text-[#c9d3f7] hover:text-white underline underline-offset-2 font-semibold disabled:opacity-30 disabled:no-underline"
           >
             Download
           </button>
@@ -467,7 +470,7 @@ export default function DocsPage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search docs…"
-              className="w-full rounded-lg bg-black border border-white/20 px-3 py-2 text-sm focus:outline-none focus:border-[#7bbc07]"
+              className="w-full rounded-lg bg-black border border-white/20 px-3 py-2 text-sm focus:outline-none focus:border-[#93a9f5]"
             />
           </div>
 
@@ -476,7 +479,7 @@ export default function DocsPage() {
               <p className="text-sm text-gray-500 p-3 text-center">
                 No documents.
                 <br />
-                <Link href="/docs/upload" className="text-[#7bbc07] underline">
+                <Link href="/docs/upload" className="text-[#c9d3f7] underline">
                   Upload one
                 </Link>
               </p>
@@ -494,7 +497,7 @@ export default function DocsPage() {
                     <span className="text-gray-500 text-xs w-3">
                       {collapsed ? "▸" : "▾"}
                     </span>
-                    <span className="text-sm font-bold text-[#b6e86a] truncate">
+                    <span className="text-sm font-bold text-[#c9d3f7] truncate">
                       {category}
                     </span>
                     <span className="ml-auto text-[10px] text-gray-500">
@@ -527,7 +530,7 @@ export default function DocsPage() {
                               }}
                               className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg text-left transition-colors ${
                                 active
-                                  ? "bg-[#7bbc07]/20 border border-[#7bbc07]/40"
+                                  ? "bg-[#7f98f0]/20 border border-[#93a9f5]/40"
                                   : "hover:bg-white/5 border border-transparent"
                               }`}
                             >
@@ -583,7 +586,7 @@ export default function DocsPage() {
               <div className="shrink-0 border-b border-white/10 px-3 sm:px-4 py-1.5 flex items-center gap-2 min-h-0">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="shrink-0 rounded bg-[#7bbc07]/15 text-[#b6e86a] border border-[#7bbc07]/30 px-1.5 py-px text-[9px] font-bold uppercase">
+                    <span className="shrink-0 rounded bg-[#7f98f0]/15 text-[#c9d3f7] border border-[#93a9f5]/30 px-1.5 py-px text-[9px] font-bold uppercase">
                       {selectedDoc.category}
                     </span>
                     <h2 className="text-sm font-semibold truncate">
@@ -602,7 +605,7 @@ export default function DocsPage() {
                   <button
                     type="button"
                     onClick={toggleTreeCollapsed}
-                    className="md:hidden shrink-0 text-xs text-gray-400 hover:text-[#7bbc07] underline underline-offset-2"
+                    className="md:hidden shrink-0 text-xs text-gray-400 hover:text-white underline underline-offset-2"
                   >
                     Library
                   </button>
@@ -637,7 +640,7 @@ export default function DocsPage() {
                           <button
                             type="button"
                             onClick={handleDownload}
-                            className="rounded-xl bg-[#7bbc07] text-black font-bold px-4 py-2 text-sm"
+                            className="rounded-xl al-fill text-[#101536] font-bold px-4 py-2 text-sm"
                           >
                             Download instead
                           </button>
@@ -733,7 +736,7 @@ function DocViewer({
         <button
           type="button"
           onClick={onDownload}
-          className="text-[#7bbc07] font-semibold underline"
+          className="text-[#c9d3f7] font-semibold underline"
         >
           Download
         </button>

@@ -6,7 +6,7 @@ import { completePasswordReset } from "@/lib/worship-auth/users";
 import { MENU_PATH, sanitizeNextPath } from "@/lib/worship-auth/paths";
 
 const fieldClass =
-  "mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-white outline-none ring-[#7bbc07] transition focus:ring-2";
+  "mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-white outline-none ring-[#7f98f0] transition focus:ring-2";
 
 export default function ChangePasswordForm({ nextPath = MENU_PATH }: { nextPath?: string }) {
   const [password, setPassword] = useState("");
@@ -83,7 +83,7 @@ export default function ChangePasswordForm({ nextPath = MENU_PATH }: { nextPath?
       <button
         type="submit"
         disabled={isLoading}
-        className="w-full rounded-xl bg-[#7bbc07] px-4 py-3 font-semibold text-neutral-950 transition hover:bg-[#8ed20a] disabled:cursor-not-allowed disabled:opacity-60"
+        className="w-full rounded-xl al-fill px-4 py-3 font-semibold text-[#101536] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {isLoading ? "Updating Password..." : "Update Password"}
       </button>

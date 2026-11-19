@@ -136,7 +136,7 @@ export default function PhotoTree({
   return (
     <aside className="flex w-80 shrink-0 flex-col border-r border-white/10" aria-label="Photo folders">
       <div className="flex items-center justify-between gap-2 px-3 py-3">
-        <p className="text-xs uppercase tracking-[0.16em] text-[#7bbc07]">Folders</p>
+        <p className="text-xs uppercase tracking-[0.16em] text-[#c9d3f7]">Folders</p>
         <button
           type="button"
           className="text-xs font-semibold text-neutral-300 hover:text-white disabled:opacity-50"
@@ -164,7 +164,7 @@ export default function PhotoTree({
         ) : null}
 
         <div className="mt-4 border-t border-white/10 pt-3">
-          <p className="px-3 text-xs uppercase tracking-[0.16em] text-[#7bbc07]">People</p>
+          <p className="px-3 text-xs uppercase tracking-[0.16em] text-[#c9d3f7]">People</p>
           {peopleError ? <p className="px-3 pt-2 text-sm text-red-300">{peopleError}</p> : null}
           {people.length === 0 && !peopleError ? (
             <p className="px-3 pt-2 text-sm text-neutral-500">Tag a photo to add a person here.</p>

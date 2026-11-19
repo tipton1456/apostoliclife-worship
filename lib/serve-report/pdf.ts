@@ -8,13 +8,13 @@ const MARGIN = 24;
 
 const TEAM_FILL: Record<ServeTeamName, string> = {
   Band: "#14532D",
-  "Worship Team": "#7BBC07",
+  "Worship Team": "#7F98F0",
   Tech: "#155E75",
 };
 
 const TEAM_TEXT: Record<ServeTeamName, string> = {
   Band: "#FFFFFF",
-  "Worship Team": "#102000",
+  "Worship Team": "#101536",
   Tech: "#FFFFFF",
 };
 
@@ -175,17 +175,17 @@ function drawBanner(
   title = "Serve Matrix",
 ) {
   const height = full ? 78 : 42;
-  doc.rect(0, 0, PAGE_WIDTH, height).fill("#000000");
-  doc.rect(0, height, PAGE_WIDTH, 3).fill("#7BBC07");
+  doc.rect(0, 0, PAGE_WIDTH, height).fill("#0a0c14");
+  doc.rect(0, height, PAGE_WIDTH, 3).fill("#7F98F0");
 
   if (logo.length > 0) {
-    doc.image(logo, 16, full ? 10 : 4, { fit: [full ? 58 : 32, full ? 58 : 32] });
+    doc.image(logo, 16, full ? 22 : 10, { fit: [full ? 188 : 120, full ? 32 : 20] });
   }
 
-  const textX = logo.length > 0 ? (full ? 84 : 56) : 20;
+  const textX = logo.length > 0 ? (full ? 216 : 146) : 20;
   doc.fillColor("#FFFFFF").font("Helvetica-Bold").fontSize(full ? 18 : 12);
   doc.text(title, textX, full ? 18 : 8, { lineBreak: false });
-  doc.fillColor("#7BBC07").font("Helvetica-Bold").fontSize(full ? 12 : 9);
+  doc.fillColor("#7F98F0").font("Helvetica-Bold").fontSize(full ? 12 : 9);
   doc.text(report.monthLabel, textX, full ? 40 : 24, { lineBreak: false });
   if (full) {
     doc.fillColor("#D4D4D4").font("Helvetica").fontSize(9);
@@ -326,8 +326,8 @@ function drawTotalRow(
   });
 
   const totalX = x + report.columnTotals.length * columnWidth;
-  doc.rect(totalX, y, totalWidth, 16).fill("#7BBC07");
-  doc.fillColor("#102000").font("Helvetica-Bold").fontSize(8);
+  doc.rect(totalX, y, totalWidth, 16).fill("#7F98F0");
+  doc.fillColor("#101536").font("Helvetica-Bold").fontSize(8);
   doc.text(String(report.grandTotal), totalX, y + 4, {
     width: totalWidth,
     align: "center",

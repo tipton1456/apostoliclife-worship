@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0a0a0a",
+  themeColor: "#0a0c14",
   width: "device-width",
   initialScale: 1,
 };
@@ -80,21 +80,21 @@ export default function ChoirSundayPage() {
           sizes="100vw"
           className="object-cover object-[center_28%] opacity-[0.38]"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/72 to-black/92" />
-        <div className="absolute inset-0 bg-[#7bbc07]/[0.07]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0c14]/85 via-[#0a0c14]/75 to-[#0a0c14]/92" />
+        <div className="absolute inset-0 bg-[#7f98f0]/[0.07]" />
       </div>
 
       <div className="mx-auto flex w-full max-w-md flex-col items-center overflow-x-hidden px-4 pb-[max(5rem,env(safe-area-inset-bottom))] pt-[max(2rem,env(safe-area-inset-top))] sm:max-w-3xl sm:px-8 lg:max-w-6xl lg:px-10">
-        <div className="flex w-full max-w-full items-center justify-center gap-2 sm:gap-6 lg:gap-8">
+        <div className="flex w-full max-w-full flex-col items-center">
           <Image
-            src="/ApostolicWorship_DarkBackGround_Transparent.png"
-            alt="Apostolic Worship"
-            width={500}
-            height={500}
+            src="/apostolic-life-logo.png"
+            alt="Apostolic Life"
+            width={520}
+            height={88}
             priority
-            className="h-20 w-20 shrink-0 object-contain sm:h-36 sm:w-36 lg:h-44 lg:w-44"
+            className="h-12 w-auto sm:h-16"
           />
-          <h1 className="min-w-0 text-left text-4xl font-black uppercase leading-[0.82] tracking-tight text-[#7bbc07] drop-shadow-[0_0_28px_rgba(123,188,7,0.5)] sm:text-7xl lg:text-8xl">
+          <h1 className="mt-5 text-center text-4xl font-black uppercase leading-[0.82] tracking-tight text-[#c9d3f7] drop-shadow-[0_0_28px_rgba(127,152,240,0.45)] sm:text-7xl lg:text-8xl">
             Choir
             <br />
             Sunday
@@ -107,7 +107,7 @@ export default function ChoirSundayPage() {
 
         <div
           aria-hidden
-          className="mt-5 h-px w-24 bg-gradient-to-r from-transparent via-[#7bbc07] to-transparent sm:w-40"
+          className="mt-5 h-px w-24 bg-gradient-to-r from-transparent via-[#93a9f5] to-transparent sm:w-40"
         />
 
         <h2 className="mt-5 w-full max-w-4xl text-center text-sm font-semibold uppercase tracking-[0.18em] text-white/90 sm:text-xl">
@@ -120,7 +120,7 @@ export default function ChoirSundayPage() {
         <section className="mt-10 w-full" aria-labelledby="schedule-heading">
           <h3
             id="schedule-heading"
-            className="mb-3 text-center text-xs font-bold uppercase tracking-[0.28em] text-[#7bbc07] sm:text-sm"
+            className="mb-3 text-center text-xs font-bold uppercase tracking-[0.28em] text-[#c9d3f7] sm:text-sm"
           >
             Practice Schedule
           </h3>
@@ -131,7 +131,7 @@ export default function ChoirSundayPage() {
                 key={event.date}
                 className="rounded-2xl border border-white/12 bg-black/55 px-4 py-4 shadow-lg shadow-black/30 backdrop-blur-md sm:px-6 sm:py-5"
               >
-                <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#7bbc07]">
+                <p className="text-sm font-bold uppercase tracking-[0.18em] text-[#c9d3f7]">
                   {event.date}
                 </p>
                 <ul className="mt-3 space-y-3">
@@ -160,7 +160,7 @@ export default function ChoirSundayPage() {
         <section className="mt-8 w-full lg:mt-10" aria-labelledby="songs-heading">
           <h3
             id="songs-heading"
-            className="mb-3 text-center text-xs font-bold uppercase tracking-[0.28em] text-[#7bbc07] sm:text-sm"
+            className="mb-3 text-center text-xs font-bold uppercase tracking-[0.28em] text-[#c9d3f7] sm:text-sm"
           >
             Songs
           </h3>
@@ -188,7 +188,7 @@ export default function ChoirSundayPage() {
                       href={partHref(song.filePrefix, part)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex min-h-14 min-w-0 items-center justify-center rounded-xl border border-[#7bbc07]/50 bg-[#7bbc07]/15 px-3 text-base font-bold text-[#7bbc07] transition-colors active:bg-[#7bbc07]/30"
+                      className="inline-flex min-h-14 min-w-0 items-center justify-center rounded-xl border border-[#93a9f5]/50 bg-[#7f98f0]/15 px-3 text-base font-bold text-[#c9d3f7] transition-colors active:bg-[#7f98f0]/30"
                     >
                       {part}
                     </a>

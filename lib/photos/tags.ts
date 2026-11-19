@@ -164,6 +164,33 @@ export async function removePhotoTag(dropboxId: string, rawTag: string) {
   return listTagsForPhoto(dropboxId);
 }
 
+export async function removeTagsForPhotos(dropboxIds: string[]) {
+  const ids = [...new Set(dropboxIds.filter(Boolean))];
+  if (!ids.length) return;
+
+  const supabase = createAdminClient();
+  for (let index = 0; index < ids.length; index += 100) {
+    const { error } = await supabase.from("worship_photo_tags").delete().in("dropbox_id", ids.slice(index, index + 100));
+    const message = friendlyTagError(error, "Unable to remove tags for the deleted photos.");
+    if (message) throw new Error(message);
+  }
+}
+
+export async function relocateTaggedFile(file: GalleryImage) {
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("worship_photo_tags")
+    .update({
+      path: file.path,
+      file_name: file.name,
+      size_bytes: file.size,
+      client_modified: file.modified,
+    })
+    .eq("dropbox_id", file.id);
+  const message = friendlyTagError(error, "Unable to update tags after the move.");
+  if (message) throw new Error(message);
+}
+
 export async function syncTaggedFiles(files: GalleryImage[]) {
   if (!files.length) return;
 

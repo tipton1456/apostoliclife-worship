@@ -70,11 +70,11 @@ export default function PhotoDetail({
 
   return (
     <aside
-      className="absolute inset-y-0 right-0 z-20 flex w-[min(100%,24rem)] shrink-0 flex-col border-l border-white/10 bg-neutral-950 shadow-2xl lg:static lg:w-96 lg:shadow-none"
+      className="absolute inset-y-0 right-0 z-20 flex w-[min(100%,24rem)] shrink-0 flex-col border-l border-[#272a35] bg-[#181c2c] shadow-2xl lg:static lg:w-96 lg:shadow-none"
       aria-label="Photo details"
     >
       <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
-        <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-[#7bbc07]">Details</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-[#c9d3f7]">Details</h2>
         <button type="button" className="text-sm font-semibold text-neutral-300 hover:text-white" onClick={onClose}>
           Close
         </button>
@@ -117,7 +117,7 @@ export default function PhotoDetail({
                   autoComplete="off"
                   disabled={saving}
                   placeholder="Name"
-                  className="w-full rounded-xl border border-white/15 bg-black px-3 py-2 text-sm outline-none focus:border-[#7bbc07]"
+                  className="w-full rounded-xl border border-white/15 bg-black px-3 py-2 text-sm outline-none focus:border-[#93a9f5]"
                   role="combobox"
                   aria-expanded={open && suggestions.length > 0}
                   aria-controls="person-tag-suggestions"

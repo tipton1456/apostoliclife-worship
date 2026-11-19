@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import WorshipLogo from "@/app/worship-logo";
 import { getCurrentWorshipUser } from "@/lib/worship-auth/users";
 import { sanitizeNextPath } from "@/lib/worship-auth/paths";
 import ChangePasswordForm from "./change-password-form";
@@ -23,10 +24,9 @@ export default async function ChangePasswordPage({
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-black px-6 py-8 text-white">
-      <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white/[0.03] p-8">
-        <p className="text-sm uppercase tracking-[0.3em] text-[#7bbc07]">
-          Apostolic Worship
-        </p>
+      <div className="al-card w-full max-w-md p-8">
+        <WorshipLogo href="/home" className="h-11 w-auto" />
+        <p className="al-eyebrow mt-6">Apostolic Worship</p>
         <h1 className="mt-3 text-3xl font-bold">Change Password</h1>
         <p className="mt-3 text-sm leading-6 text-neutral-400">
           {currentUser.mustResetPassword

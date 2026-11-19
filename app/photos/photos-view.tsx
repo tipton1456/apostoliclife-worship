@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import PhotoDetail from "@/app/photos/photo-detail";
+import PhotoManageDialog, { type ManageStep } from "@/app/photos/photo-manage";
 import PhotoTree, { type PhotoBrowserMode } from "@/app/photos/photo-tree";
 
 const FaceReview = dynamic(() => import("@/app/photos/face-review"), {
@@ -12,6 +13,41 @@ const FaceReview = dynamic(() => import("@/app/photos/face-review"), {
 import { formatBytes, formatPhotoCount } from "@/lib/photos/format";
 import { buildFolderTree, bumpFolderStats, findFolder } from "@/lib/photos/folder-tree";
 import type { FolderStat, GalleryImage, PersonSummary, PhotoDetails } from "@/lib/photos/types";
+
+function failureText(failed: { name: string; error: string }[]) {
+  return failed
+    .slice(0, 3)
+    .map((item) => `${item.name}: ${item.error}`)
+    .join(" ");
+}
+
+function FolderThumb({ path, raw }: { path: string; raw?: boolean }) {
+  const [failed, setFailed] = useState(false);
+
+  return (
+    <div className="relative">
+      {failed ? (
+        <span className="flex aspect-square w-full items-center justify-center bg-neutral-900 text-sm font-semibold uppercase tracking-wide text-neutral-400">
+          Raw
+        </span>
+      ) : (
+        /* Thumbnails come from the signed-in photo API, not a static file. */
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img
+          src={`/api/photos/thumbnail?path=${encodeURIComponent(path)}`}
+          alt=""
+          className="aspect-square w-full object-cover"
+          onError={() => setFailed(true)}
+        />
+      )}
+      {raw ? (
+        <span className="absolute bottom-2 left-2 rounded bg-black/75 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+          RAW
+        </span>
+      ) : null}
+    </div>
+  );
+}
 
 function galleryTitle(mode: PhotoBrowserMode, rootName: string) {
   if (mode.type === "person") return mode.tag;
@@ -42,6 +78,12 @@ export default function PhotosView() {
   const [detailError, setDetailError] = useState("");
   const [savingTag, setSavingTag] = useState(false);
   const [faceOpen, setFaceOpen] = useState(false);
+  const [managing, setManaging] = useState(false);
+  const [pickedIds, setPickedIds] = useState<string[]>([]);
+  const [manageStep, setManageStep] = useState<ManageStep>(null);
+  const [busy, setBusy] = useState("");
+  const [notice, setNotice] = useState("");
+  const [convertScope, setConvertScope] = useState<"selection" | "folder">("folder");
   const galleryRequest = useRef(0);
   const detailRequest = useRef(0);
   const treeRequest = useRef(0);
@@ -86,6 +128,10 @@ export default function PhotosView() {
   const selectFolder = useCallback(async (path: string) => {
     const requestId = ++galleryRequest.current;
     setFaceOpen(false);
+    setManaging(false);
+    setPickedIds([]);
+    setManageStep(null);
+    setNotice("");
     setMode({ type: "folder", path });
     setExpanded((current) => ({ ...current, [path]: true }));
     setGalleryLoading(true);
@@ -107,6 +153,10 @@ export default function PhotosView() {
   const selectPerson = useCallback(async (tag: string) => {
     const requestId = ++galleryRequest.current;
     setFaceOpen(false);
+    setManaging(false);
+    setPickedIds([]);
+    setManageStep(null);
+    setNotice("");
     setMode({ type: "person", tag });
     setGalleryLoading(true);
     setGalleryError("");
@@ -279,6 +329,205 @@ export default function PhotosView() {
     await selectFolder(folder);
   }
 
+  const picked = new Set(pickedIds);
+  const selectedImages = images.filter((image) => picked.has(image.id));
+  const rawImages = images.filter((image) => image.raw);
+  const selectedRaw = selectedImages.filter((image) => image.raw);
+  const convertCount = (convertScope === "selection" ? selectedRaw : rawImages).length;
+
+  async function adjustTotals(folder: string, count: number, sizeBytes: number) {
+    if (!count && !sizeBytes) return;
+    setStats((current) => bumpFolderStats(current, folder, count, sizeBytes));
+    const saved = await fetch("/api/photos/tree", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ folder, count, sizeBytes }),
+    });
+    const savedBody = (await saved.json().catch(() => null)) as { updated?: boolean } | null;
+    if (!saved.ok || savedBody?.updated === false) void refreshTree(true);
+  }
+
+  function toggleManage() {
+    if (busy) return;
+    if (managing) {
+      setManaging(false);
+      setPickedIds([]);
+      setManageStep(null);
+      return;
+    }
+    setFaceOpen(false);
+    closeDetail();
+    setManaging(true);
+  }
+
+  function togglePicked(id: string) {
+    setPickedIds((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]));
+  }
+
+  async function deleteSelected() {
+    if (mode.type !== "folder" || !selectedImages.length || busy) return;
+    const folder = mode.path;
+    const targets = selectedImages;
+    setBusy("Deleting selected files…");
+    setGalleryError("");
+    setNotice("");
+    const response = await fetch("/api/photos/manage", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "delete", paths: targets.map((image) => image.path) }),
+    });
+    const body = (await response.json().catch(() => null)) as {
+      removed?: GalleryImage[];
+      failed?: { name: string; error: string }[];
+      error?: string;
+    } | null;
+    setBusy("");
+    if (!response.ok || !body || body.error) {
+      setGalleryError(body?.error || "Unable to delete those photos.");
+      return;
+    }
+    const removed = body.removed ?? [];
+    await adjustTotals(folder, -removed.length, -removed.reduce((sum, image) => sum + image.size, 0));
+    setManageStep(null);
+    await selectFolder(folder);
+    const failed = failureText(body.failed ?? []);
+    if (removed.length) setNotice(`Deleted ${removed.length} file${removed.length === 1 ? "" : "s"}.${failed ? ` ${failed}` : ""}`);
+    else if (failed) setGalleryError(failed);
+  }
+
+  async function moveSelected(destination: string) {
+    if (mode.type !== "folder" || !selectedImages.length || busy) return;
+    const folder = mode.path;
+    const targets = selectedImages;
+    setBusy("Moving selected files…");
+    setGalleryError("");
+    setNotice("");
+    const response = await fetch("/api/photos/manage", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "move", paths: targets.map((image) => image.path), destination }),
+    });
+    const body = (await response.json().catch(() => null)) as {
+      destination?: string;
+      moved?: { from: GalleryImage }[];
+      failed?: { name: string; error: string }[];
+      error?: string;
+    } | null;
+    setBusy("");
+    if (!response.ok || !body || body.error) {
+      setGalleryError(body?.error || "Unable to move those photos.");
+      return;
+    }
+    const moved = body.moved ?? [];
+    const bytes = moved.reduce((sum, item) => sum + item.from.size, 0);
+    await adjustTotals(folder, -moved.length, -bytes);
+    await adjustTotals(body.destination ?? destination, moved.length, bytes);
+    setManageStep(null);
+    await selectFolder(folder);
+    const failed = failureText(body.failed ?? []);
+    if (moved.length) setNotice(`Moved ${moved.length} file${moved.length === 1 ? "" : "s"}.${failed ? ` ${failed}` : ""}`);
+    else if (failed) setGalleryError(failed);
+  }
+
+  async function downloadSelected() {
+    if (mode.type !== "folder" || !selectedImages.length || busy) return;
+    const bytes = selectedImages.reduce((sum, image) => sum + image.size, 0);
+    if (bytes > 150 * 1024 * 1024) {
+      setGalleryError("Select fewer files. Downloads are limited to 150 MB at a time.");
+      return;
+    }
+    const folder = mode.path;
+    const count = selectedImages.length;
+    setBusy("Preparing the download…");
+    setGalleryError("");
+    setNotice("");
+    const response = await fetch("/api/photos/download", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ paths: selectedImages.map((image) => image.path), folder }),
+    });
+    if (!response.ok) {
+      const body = (await response.json().catch(() => null)) as { error?: string } | null;
+      setBusy("");
+      setGalleryError(body?.error || "Unable to download those photos.");
+      return;
+    }
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${folder.split("/").pop() || "photos"}.zip`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    setBusy("");
+    setManageStep(null);
+    setNotice(`Downloaded ${count} file${count === 1 ? "" : "s"}.`);
+  }
+
+  async function tagSelected(tags: string[]) {
+    if (mode.type !== "folder" || !selectedImages.length || busy) return;
+    setBusy("Tagging selected files…");
+    setGalleryError("");
+    setNotice("");
+    const response = await fetch("/api/photos/manage", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "tag", paths: selectedImages.map((image) => image.path), tags }),
+    });
+    const body = (await response.json().catch(() => null)) as {
+      tagged?: number;
+      failed?: { name: string; error: string }[];
+      error?: string;
+    } | null;
+    setBusy("");
+    if (!response.ok || !body || body.error) {
+      setGalleryError(body?.error || "Unable to tag those photos.");
+      return;
+    }
+    await loadPeople();
+    setManageStep(null);
+    const tagged = body.tagged ?? 0;
+    const failed = failureText(body.failed ?? []);
+    if (tagged) setNotice(`Tagged ${tagged} file${tagged === 1 ? "" : "s"}.${failed ? ` ${failed}` : ""}`);
+    else if (failed) setGalleryError(failed);
+  }
+
+  async function convertRaw() {
+    const targets = convertScope === "selection" ? selectedRaw : rawImages;
+    if (mode.type !== "folder" || !targets.length || busy) return;
+    const folder = mode.path;
+    setGalleryError("");
+    setNotice("");
+    let added = 0;
+    let addedBytes = 0;
+    const errors: string[] = [];
+    for (let index = 0; index < targets.length; index += 1) {
+      const image = targets[index];
+      setBusy(`Converting ${index + 1} of ${targets.length}: ${image.name}`);
+      const response = await fetch("/api/photos/manage", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "convert", path: image.path }),
+      });
+      const body = (await response.json().catch(() => null)) as { image?: GalleryImage; error?: string } | null;
+      if (!response.ok || !body?.image) {
+        errors.push(`${image.name}: ${body?.error || "Unable to convert that file."}`);
+        continue;
+      }
+      added += 1;
+      addedBytes += body.image.size;
+    }
+    setBusy("");
+    setManageStep(null);
+    if (added) await adjustTotals(folder, added, addedBytes);
+    await selectFolder(folder);
+    const failed = errors.slice(0, 2).join(" ");
+    if (added) setNotice(`Added ${added} JPG file${added === 1 ? "" : "s"} to this folder.${failed ? ` ${failed}` : ""}`);
+    else setGalleryError(failed || "Unable to convert those RAW files.");
+  }
+
   const person = mode.type === "person" ? people.find((item) => item.tag === mode.tag) : null;
   const subtitle =
     mode.type === "person"
@@ -330,18 +579,73 @@ export default function PhotosView() {
               </nav>
             ) : null}
             <h2 className="truncate text-2xl font-bold">{galleryTitle(mode, rootName)}</h2>
-            <p className="mt-1 text-sm text-neutral-400">{subtitle}</p>
+            <p className="mt-1 text-sm text-neutral-400">
+              {subtitle}
+              {managing ? ` · ${pickedIds.length} selected` : ""}
+            </p>
+            {busy || notice ? <p className={`mt-1 text-sm ${busy ? "text-[#c9d3f7]" : "text-neutral-300"}`}>{busy || notice}</p> : null}
           </div>
           {mode.type === "folder" ? (
             <div className="flex flex-wrap gap-2">
+              {!faceOpen && !galleryLoading && images.length > 0 ? (
+                <button
+                  type="button"
+                  aria-pressed={managing}
+                  className={`rounded-xl border px-4 py-2 text-sm font-semibold ${
+                    managing ? "border-[#93a9f5] bg-[#7f98f0]/15 text-white" : "border-white/15 text-white hover:bg-white/5"
+                  }`}
+                  onClick={toggleManage}
+                  disabled={Boolean(busy)}
+                >
+                  Mass manage
+                </button>
+              ) : null}
+              {managing && pickedIds.length > 0 ? (
+                <button
+                  type="button"
+                  className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-neutral-950 disabled:opacity-60"
+                  onClick={() => setManageStep("options")}
+                  disabled={Boolean(busy)}
+                >
+                  Choose options
+                </button>
+              ) : null}
+              {managing ? (
+                <button
+                  type="button"
+                  className="rounded-xl border border-white/15 px-4 py-2 text-sm font-semibold text-white hover:bg-white/5 disabled:opacity-60"
+                  onClick={() => setPickedIds(pickedIds.length === images.length ? [] : images.map((image) => image.id))}
+                  disabled={Boolean(busy)}
+                >
+                  {pickedIds.length === images.length ? "Clear selection" : "Select all"}
+                </button>
+              ) : null}
+              {!managing && !faceOpen && !galleryLoading && rawImages.length > 0 ? (
+                <button
+                  type="button"
+                  className="rounded-xl border border-white/15 px-4 py-2 text-sm font-semibold text-white hover:bg-white/5 disabled:opacity-60"
+                  disabled={Boolean(busy)}
+                  onClick={() => {
+                    setConvertScope("folder");
+                    setManageStep("convert");
+                  }}
+                >
+                  Convert RAW to JPG
+                </button>
+              ) : null}
               <button
                 type="button"
                 className="rounded-xl border border-white/15 px-4 py-2 text-sm font-semibold text-white hover:bg-white/5"
-                onClick={() => setFaceOpen((open) => !open)}
+                onClick={() => {
+                  setManaging(false);
+                  setPickedIds([]);
+                  setManageStep(null);
+                  setFaceOpen((open) => !open);
+                }}
               >
                 {faceOpen ? "Close faces" : "Find faces"}
               </button>
-              <label className="cursor-pointer rounded-xl bg-[#7bbc07] px-4 py-2 text-sm font-semibold text-neutral-950">
+              <label className="cursor-pointer rounded-xl al-fill px-4 py-2 text-sm font-semibold text-[#101536]">
                 {uploading ? `Uploading ${uploading}` : "Upload photos"}
                 <input
                   type="file"
@@ -389,23 +693,32 @@ export default function PhotosView() {
         {!faceOpen && images.length > 0 ? (
           <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
             {images.map((image) => {
-              const selected = selectedId === image.id;
+              const checked = picked.has(image.id);
+              const open = selectedId === image.id;
               return (
                 <button
                   key={image.id}
                   type="button"
-                  onClick={() => void openPhoto(image)}
-                  className={`overflow-hidden rounded-2xl border bg-neutral-950 text-left ${
-                    selected ? "border-[#7bbc07] ring-2 ring-[#7bbc07]" : "border-white/10"
+                  aria-pressed={managing ? checked : undefined}
+                  aria-label={managing ? `${checked ? "Deselect" : "Select"} ${image.name}` : undefined}
+                  onClick={() => {
+                    if (managing) togglePicked(image.id);
+                    else void openPhoto(image);
+                  }}
+                  className={`relative overflow-hidden rounded-2xl border bg-neutral-950 text-left ${
+                    (managing ? checked : open) ? "border-[#93a9f5] ring-2 ring-[#7f98f0]" : "border-white/10"
                   }`}
                 >
-                  {/* Thumbnails come from the signed-in photo API, not a static file. */}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={`/api/photos/thumbnail?path=${encodeURIComponent(image.path)}`}
-                    alt={image.name}
-                    className="aspect-square w-full object-cover"
-                  />
+                  {managing ? (
+                    <span
+                      className={`absolute left-2 top-2 z-10 flex h-6 w-6 items-center justify-center rounded-md border text-sm font-bold ${
+                        checked ? "border-[#93a9f5] al-fill text-[#101536]" : "border-white/80 bg-black/55 text-transparent"
+                      }`}
+                    >
+                      ✓
+                    </span>
+                  ) : null}
+                  <FolderThumb path={image.path} raw={image.raw} />
                   <span className="block truncate px-3 py-2 text-xs text-neutral-300">{image.name}</span>
                 </button>
               );
@@ -430,6 +743,30 @@ export default function PhotosView() {
           onRemove={removeTag}
         />
       ) : null}
+
+      <PhotoManageDialog
+        step={manageStep}
+        selectedCount={selectedImages.length}
+        convertCount={convertCount}
+        canConvert={rawImages.length > 0}
+        busy={busy}
+        people={people}
+        folders={stats}
+        currentFolder={mode.type === "folder" ? mode.path : ""}
+        rootName={rootName}
+        onClose={() => {
+          if (!busy) setManageStep(null);
+        }}
+        onStep={(step) => {
+          if (step === "convert") setConvertScope(selectedRaw.length ? "selection" : "folder");
+          setManageStep(step);
+        }}
+        onDelete={() => void deleteSelected()}
+        onMove={(destination) => void moveSelected(destination)}
+        onDownload={() => void downloadSelected()}
+        onTag={(tags) => void tagSelected(tags)}
+        onConvert={() => void convertRaw()}
+      />
     </div>
   );
 }

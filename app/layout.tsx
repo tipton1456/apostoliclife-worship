@@ -1,10 +1,11 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Montserrat } from "next/font/google";
 import "./globals.css";
 
 const montserrat = Montserrat({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-montserrat",
 });
 
 export const metadata: Metadata = {
@@ -24,15 +25,26 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  themeColor: "#0a0c14",
+  width: "device-width",
+  initialScale: 1,
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={montserrat.variable}>
       <body className={montserrat.className}>
-        {children}
+        <div className="al-backdrop" aria-hidden="true">
+          <div className="al-blob al-blob-a" />
+          <div className="al-blob al-blob-b" />
+          <div className="al-blob al-blob-c" />
+        </div>
+        <div className="relative z-10">{children}</div>
       </body>
     </html>
   );

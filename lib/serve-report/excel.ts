@@ -4,13 +4,13 @@ import type { ServeReport, ServeTeamName } from "@/lib/serve-report/types";
 
 const TEAM_FILL: Record<ServeTeamName, string> = {
   Band: "FF14532D",
-  "Worship Team": "FF7BBC07",
+  "Worship Team": "FF7F98F0",
   Tech: "FF155E75",
 };
 
 const TEAM_FONT: Record<ServeTeamName, string> = {
   Band: "FFFFFFFF",
-  "Worship Team": "FF102000",
+  "Worship Team": "FF101536",
   Tech: "FFFFFFFF",
 };
 
@@ -21,7 +21,7 @@ export async function serveReportToXlsx(report: ServeReport, logo: Buffer) {
 
   const sheet = workbook.addWorksheet("Serve Matrix", {
     views: [{ state: "frozen", xSplit: 1, ySplit: 8, showGridLines: false }],
-    properties: { tabColor: { argb: "FF7BBC07" } },
+    properties: { tabColor: { argb: "FF7F98F0" } },
     pageSetup: {
       orientation: "landscape",
       fitToPage: true,
@@ -40,7 +40,7 @@ export async function serveReportToXlsx(report: ServeReport, logo: Buffer) {
     const excelRow = sheet.getRow(row);
     excelRow.height = 18;
     for (let column = 1; column <= lastCol; column += 1) {
-      excelRow.getCell(column).fill = solid("FF000000");
+      excelRow.getCell(column).fill = solid("FF0A0C14");
     }
   }
 
@@ -51,7 +51,7 @@ export async function serveReportToXlsx(report: ServeReport, logo: Buffer) {
     });
     sheet.addImage(imageId, {
       tl: { col: 0.15, row: 0.15 },
-      ext: { width: 78, height: 78 },
+      ext: { width: 168, height: 28 },
     });
   }
 
@@ -62,7 +62,7 @@ export async function serveReportToXlsx(report: ServeReport, logo: Buffer) {
 
   const month = sheet.getCell(3, 3);
   month.value = report.monthLabel;
-  month.font = { name: "Calibri", size: 16, bold: true, color: { argb: "FF7BBC07" } };
+  month.font = { name: "Calibri", size: 16, bold: true, color: { argb: "FF7F98F0" } };
 
   const subtitle = sheet.getCell(4, 3);
   subtitle.value = "Band, Worship Team, and Tech";
@@ -153,7 +153,7 @@ export async function serveReportToXlsx(report: ServeReport, logo: Buffer) {
 
   const grand = totalRow.getCell(report.columns.length + 2);
   grand.value = report.grandTotal;
-  styleHeader(grand, "FF7BBC07", "FF102000");
+  styleHeader(grand, "FF7F98F0", "FF101536");
 
   if (report.people.length > 0) {
     sheet.autoFilter = {

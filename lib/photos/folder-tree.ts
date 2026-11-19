@@ -155,8 +155,8 @@ export function bumpFolderStats(folders: FolderStat[], folder: string, count: nu
     matched = true;
     return {
       ...item,
-      photoCount: item.photoCount + count,
-      sizeBytes: item.sizeBytes + sizeBytes,
+      photoCount: Math.max(0, item.photoCount + count),
+      sizeBytes: Math.max(0, item.sizeBytes + sizeBytes),
     };
   });
 

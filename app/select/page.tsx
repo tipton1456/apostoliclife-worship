@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import WorshipLogo from "@/app/worship-logo";
 
 type ServiceType = {
   id: string;
@@ -34,9 +35,12 @@ export default function SelectPage() {
 
   return (
     <main className="min-h-screen bg-black text-white p-10">
-      <h1 className="text-5xl font-black text-center uppercase mb-10 text-[#7bbc07]">
-        Select Service
-      </h1>
+      <div className="mb-10 flex flex-col items-center gap-4">
+        <WorshipLogo href={null} className="h-12 w-auto" />
+        <h1 className="text-center text-5xl font-black uppercase text-[#c9d3f7]">
+          Select Service
+        </h1>
+      </div>
 
       <div className="w-full max-w-[1920px] mx-auto">
         <div className="grid grid-cols-2 gap-6 mb-8">
@@ -46,7 +50,7 @@ export default function SelectPage() {
             </label>
 
             <select
-              className="w-full p-4 rounded bg-neutral-800 text-white border border-gray-600"
+              className="w-full rounded-xl border border-[#272a35] bg-[#141824] p-4 text-white"
               value={selectedServiceType}
               onChange={(e) => {
                 setSelectedServiceType(e.target.value);
@@ -67,7 +71,7 @@ export default function SelectPage() {
             <label className="block mb-2 text-xl text-center">Plan</label>
 
             <select
-              className="w-full p-4 rounded bg-neutral-800 text-white border border-gray-600"
+              className="w-full rounded-xl border border-[#272a35] bg-[#141824] p-4 text-white"
               value={selectedPlan}
               onChange={(e) => setSelectedPlan(e.target.value)}
             >

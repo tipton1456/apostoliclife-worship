@@ -1,5 +1,6 @@
 import Link from "next/link";
 import PhotosView from "@/app/photos/photos-view";
+import WorshipLogo from "@/app/worship-logo";
 import { requireWorshipFeature } from "@/lib/worship-auth/guard";
 
 export const metadata = {
@@ -11,15 +12,17 @@ export default async function PhotosPage() {
 
   return (
     <main className="flex h-[100dvh] flex-col overflow-hidden bg-black text-white">
-      <header className="flex items-center justify-between gap-4 px-4 py-4 sm:px-6">
-        <div>
-          <p className="text-sm uppercase tracking-[0.3em] text-[#7bbc07]">Apostolic Worship</p>
-          <h1 className="mt-1 text-3xl font-bold tracking-tight">Photos</h1>
-          <p className="mt-1 text-sm text-neutral-400">
-            Folders on the left, photos in the middle, and details with people tags on the right.
-          </p>
+      <header className="flex items-center justify-between gap-4 border-b border-white/10 px-4 py-3 sm:px-6">
+        <div className="flex min-w-0 items-center gap-4">
+          <WorshipLogo href="/home" className="h-9 w-auto" />
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold tracking-tight">Photos</h1>
+            <p className="mt-0.5 truncate text-sm text-[#a9b2c8]">
+              Folders on the left, photos in the middle, and details with people tags on the right.
+            </p>
+          </div>
         </div>
-        <Link href="/home" className="shrink-0 text-sm font-semibold text-[#7bbc07]">
+        <Link href="/home" className="al-ghost shrink-0 px-4 py-2 text-sm">
           Menu
         </Link>
       </header>

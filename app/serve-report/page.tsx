@@ -46,11 +46,9 @@ export default async function ServeReportPage({
         </div>
 
         <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
-          <WorshipLogo href="/home" className="h-auto w-28" />
+          <WorshipLogo href="/home" className="h-12 w-auto" />
           <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-[#7bbc07]">
-              Apostolic Worship
-            </p>
+            <p className="al-eyebrow">Apostolic Worship</p>
             <h1 className="text-3xl font-black tracking-tight sm:text-4xl">Serve Matrix</h1>
             <p className="mt-1 max-w-2xl text-sm text-neutral-400">
               Names down the side, positions across the top, for Band, Worship Team, and Tech.

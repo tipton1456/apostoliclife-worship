@@ -1,7 +1,7 @@
 import { WORSHIP_FEATURES, type WorshipFeatureKey } from "@/lib/worship-auth/features";
 
 export const fieldClass =
-  "mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-white outline-none ring-[#7bbc07] transition focus:ring-2";
+  "mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-white outline-none ring-[#7f98f0] transition focus:ring-2";
 
 export function TextField({
   label,
@@ -70,7 +70,7 @@ export function FeatureChecks({
               name="features"
               value={feature.key}
               defaultChecked={selectedKeys.has(feature.key)}
-              className="mt-0.5 h-4 w-4 rounded border-white/20 bg-neutral-900 accent-[#7bbc07]"
+              className="mt-0.5 h-4 w-4 rounded border-white/20 bg-neutral-900 accent-[#7f98f0]"
             />
             <span>
               <span className="block font-medium">{feature.label}</span>

@@ -118,7 +118,7 @@ function NameField({
         autoComplete="off"
         placeholder="Name"
         aria-label="Person name"
-        className="min-w-0 flex-1 rounded-lg border border-white/15 bg-black px-2 py-1.5 text-sm outline-none focus:border-[#7bbc07]"
+        className="min-w-0 flex-1 rounded-lg border border-white/15 bg-black px-2 py-1.5 text-sm outline-none focus:border-[#93a9f5]"
         onChange={(event) => {
           setQuery(event.target.value);
           setHighlight(0);
@@ -141,7 +141,7 @@ function NameField({
       />
         <button
           type="button"
-          className="shrink-0 rounded-lg bg-[#7bbc07] px-2 text-xs font-semibold text-neutral-950 disabled:opacity-50"
+          className="shrink-0 rounded-lg al-fill px-2 text-xs font-semibold text-[#101536] disabled:opacity-50"
           disabled={disabled || !query.trim()}
           onClick={() => choose(query)}
         >
@@ -479,10 +479,10 @@ export default function FaceReview({ folder, folderName, people, onPeopleChange,
       {recognized > 0 ? (
         <div className="mt-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h4 className="text-sm font-semibold uppercase tracking-[0.16em] text-[#7bbc07]">Recognized · {recognized}</h4>
+            <h4 className="text-sm font-semibold uppercase tracking-[0.16em] text-[#c9d3f7]">Recognized · {recognized}</h4>
             <button
               type="button"
-              className="rounded-xl bg-[#7bbc07] px-4 py-2 text-sm font-semibold text-neutral-950 disabled:opacity-50"
+              className="rounded-xl al-fill px-4 py-2 text-sm font-semibold text-[#101536] disabled:opacity-50"
               disabled={busyIds.length > 0}
               onClick={() =>
                 void decide(
@@ -532,7 +532,7 @@ export default function FaceReview({ folder, folderName, people, onPeopleChange,
                         </div>
                       ) : (
                         <div className="mt-2 flex flex-wrap gap-2 text-xs font-semibold">
-                          <button type="button" className="text-[#7bbc07] disabled:opacity-50" disabled={busy} onClick={() => void decide([{ id: face.id, action: "approve", tag: group.tag }])}>
+                          <button type="button" className="text-[#c9d3f7] disabled:opacity-50" disabled={busy} onClick={() => void decide([{ id: face.id, action: "approve", tag: group.tag }])}>
                             Approve
                           </button>
                           <button type="button" className="text-neutral-300 hover:text-white disabled:opacity-50" disabled={busy} onClick={() => setEditingId(face.id)}>
@@ -554,7 +554,7 @@ export default function FaceReview({ folder, folderName, people, onPeopleChange,
 
       {groups.unknown.length > 0 ? (
         <div className="mt-8">
-          <h4 className="text-sm font-semibold uppercase tracking-[0.16em] text-[#7bbc07]">
+          <h4 className="text-sm font-semibold uppercase tracking-[0.16em] text-[#c9d3f7]">
             New faces · {groups.unknown.length}
           </h4>
           <p className="mt-1 text-sm text-neutral-500">Name a face once. The next run can recognize that person.</p>

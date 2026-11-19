@@ -1,11 +1,12 @@
 import type { Viewport } from "next";
 import { headers } from "next/headers";
+import WorshipLogo from "@/app/worship-logo";
 import MicBoardGrid, { type TeamMember } from "../components/MicBoardGrid";
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#000000",
+  themeColor: "#0a0c14",
 };
 
 type WorshipTeamResponse = {
@@ -56,8 +57,9 @@ export default async function MicBoardPage() {
   if (statusMessage) {
     return (
       <main className="mx-auto flex h-screen w-screen max-h-[1920px] max-w-[1080px] flex-col items-center justify-center overflow-hidden bg-black p-6 text-center text-white">
-        <h1 className="text-6xl font-black uppercase mb-6 text-[#7bbc07] tracking-wide">
-          Apostolic Worship Mic Board
+        <WorshipLogo href={null} className="mb-6 h-12 w-auto" />
+        <h1 className="mb-6 text-5xl font-black uppercase tracking-wide text-[#c9d3f7]">
+          Mic Board
         </h1>
         <div className="text-3xl font-semibold mb-3">Unable to load worship team</div>
         <p className="text-xl text-gray-300 max-w-3xl">{statusMessage}</p>
@@ -66,12 +68,17 @@ export default async function MicBoardPage() {
   }
 
   return (
-    <main className="mx-auto h-screen w-screen max-h-[1920px] max-w-[1080px] overflow-hidden bg-black px-4 pb-4 pt-0 text-white">
-      <MicBoardGrid
-        team={team}
-        teamRefreshUrl="/api/worship-team"
-        columns={4}
-      />
+    <main className="mx-auto flex h-screen w-screen max-h-[1920px] max-w-[1080px] flex-col overflow-hidden bg-black px-4 pb-4 text-white">
+      <div className="flex justify-center py-2">
+        <WorshipLogo href={null} className="h-8 w-auto" />
+      </div>
+      <div className="min-h-0 flex-1">
+        <MicBoardGrid
+          team={team}
+          teamRefreshUrl="/api/worship-team"
+          columns={4}
+        />
+      </div>
     </main>
   );
 }

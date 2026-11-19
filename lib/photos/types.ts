@@ -6,6 +6,7 @@ export type GalleryImage = {
   path: string;
   size: number;
   modified: string | null;
+  raw?: boolean;
 };
 
 export type PhotoDetails = {

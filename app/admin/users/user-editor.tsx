@@ -88,7 +88,7 @@ export default function UserEditor({
               name={isSelf ? undefined : "active"}
               defaultChecked={user.active}
               disabled={isSelf}
-              className="h-4 w-4 rounded border-white/20 bg-neutral-900 accent-[#7bbc07] disabled:opacity-60"
+              className="h-4 w-4 rounded border-white/20 bg-neutral-900 accent-[#7f98f0] disabled:opacity-60"
             />
             Account is active
           </label>

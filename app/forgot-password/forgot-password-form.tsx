@@ -13,7 +13,7 @@ const initialState: PasswordResetState = {
 };
 
 const fieldClass =
-  "mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-white outline-none ring-[#7bbc07] transition focus:ring-2";
+  "mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-white outline-none ring-[#7f98f0] transition focus:ring-2";
 
 export default function ForgotPasswordForm() {
   const [state, formAction, pending] = useActionState(requestWorshipPasswordReset, initialState);
@@ -35,7 +35,7 @@ export default function ForgotPasswordForm() {
       <button
         type="submit"
         disabled={pending}
-        className="w-full rounded-xl bg-[#7bbc07] px-4 py-3 font-semibold text-neutral-950 transition hover:bg-[#8ed20a] disabled:cursor-not-allowed disabled:opacity-60"
+        className="w-full rounded-xl al-fill px-4 py-3 font-semibold text-[#101536] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {pending ? "Sending..." : "Text a temporary password"}
       </button>

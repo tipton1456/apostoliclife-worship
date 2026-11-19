@@ -9,7 +9,7 @@ type ReportMode = "month" | "range";
 
 const TEAM_HEADER: Record<ServeTeamName, string> = {
   Band: "bg-[#14532d] text-white",
-  "Worship Team": "bg-[#7bbc07] text-[#102000]",
+  "Worship Team": "al-fill text-[#101536]",
   Tech: "bg-[#155e75] text-white",
 };
 
@@ -138,7 +138,7 @@ export default function ServeReportView({
             <button
               type="button"
               onClick={() => updateMonth(shiftMonth(month, -1))}
-              className="rounded-xl border border-white/15 px-3 py-2 text-sm font-semibold hover:border-[#7bbc07]/50"
+              className="rounded-xl border border-white/15 px-3 py-2 text-sm font-semibold hover:border-[#93a9f5]/50"
             >
               Previous
             </button>
@@ -148,13 +148,13 @@ export default function ServeReportView({
                 type="month"
                 value={month}
                 onChange={(event) => updateMonth(event.target.value)}
-                className="rounded-xl border border-white/15 bg-neutral-900 px-3 py-2 text-white outline-none ring-[#7bbc07] focus:ring-2"
+                className="rounded-xl border border-white/15 bg-neutral-900 px-3 py-2 text-white outline-none ring-[#7f98f0] focus:ring-2"
               />
             </label>
             <button
               type="button"
               onClick={() => updateMonth(shiftMonth(month, 1))}
-              className="rounded-xl border border-white/15 px-3 py-2 text-sm font-semibold hover:border-[#7bbc07]/50"
+              className="rounded-xl border border-white/15 px-3 py-2 text-sm font-semibold hover:border-[#93a9f5]/50"
             >
               Next
             </button>
@@ -167,7 +167,7 @@ export default function ServeReportView({
                 type="date"
                 value={from}
                 onChange={(event) => updateRange(event.target.value, to)}
-                className="rounded-xl border border-white/15 bg-neutral-900 px-3 py-2 text-white outline-none ring-[#7bbc07] focus:ring-2"
+                className="rounded-xl border border-white/15 bg-neutral-900 px-3 py-2 text-white outline-none ring-[#7f98f0] focus:ring-2"
               />
             </label>
             <label className="text-sm text-neutral-300">
@@ -176,7 +176,7 @@ export default function ServeReportView({
                 type="date"
                 value={to}
                 onChange={(event) => updateRange(from, event.target.value)}
-                className="rounded-xl border border-white/15 bg-neutral-900 px-3 py-2 text-white outline-none ring-[#7bbc07] focus:ring-2"
+                className="rounded-xl border border-white/15 bg-neutral-900 px-3 py-2 text-white outline-none ring-[#7f98f0] focus:ring-2"
               />
             </label>
           </>
@@ -184,7 +184,7 @@ export default function ServeReportView({
         <button
           type="button"
           onClick={showYearToDate}
-          className="rounded-xl border border-white/15 px-3 py-2 text-sm font-semibold hover:border-[#7bbc07]/50"
+          className="rounded-xl border border-white/15 px-3 py-2 text-sm font-semibold hover:border-[#93a9f5]/50"
         >
           Year to date
         </button>
@@ -192,7 +192,7 @@ export default function ServeReportView({
           type="button"
           onClick={() => download("xlsx")}
           disabled={loading || !report || exporting !== null}
-          className="rounded-xl bg-[#7bbc07] px-4 py-2 text-sm font-semibold text-neutral-950 hover:bg-[#8ed20a] disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-xl al-fill px-4 py-2 text-sm font-semibold text-[#101536] hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {exporting === "xlsx" ? "Preparing Excel..." : "Excel"}
         </button>
@@ -200,7 +200,7 @@ export default function ServeReportView({
           type="button"
           onClick={() => download("pdf")}
           disabled={loading || !report || exporting !== null}
-          className="rounded-xl border border-[#7bbc07]/60 px-4 py-2 text-sm font-semibold text-[#7bbc07] hover:bg-[#7bbc07]/10 disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-xl border border-[#93a9f5]/60 px-4 py-2 text-sm font-semibold text-[#c9d3f7] hover:bg-[#7f98f0]/10 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {exporting === "pdf" ? "Preparing PDF..." : "PDF"}
         </button>
@@ -321,7 +321,7 @@ export default function ServeReportView({
                         {total}
                       </td>
                     ))}
-                    <td className="sticky right-0 bottom-0 z-30 border-t border-l border-white/10 bg-[#7bbc07] px-2 py-2 text-center font-black text-neutral-950 tabular-nums">
+                    <td className="sticky right-0 bottom-0 z-30 border-t border-l border-white/10 al-fill px-2 py-2 text-center font-black text-[#101536] tabular-nums">
                       {report.grandTotal}
                     </td>
                   </tr>

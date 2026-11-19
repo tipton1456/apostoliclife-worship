@@ -1,23 +1,33 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 
 export default function WorshipLogo({
-  className = "h-auto w-56 max-w-full",
+  className = "h-11 w-auto max-w-full",
   href = "/",
 }: {
   className?: string;
-  href?: string;
+  href?: string | null;
 }) {
+  const image = (
+    <Image
+      src="/apostolic-life-logo.png"
+      alt="Apostolic Life"
+      width={520}
+      height={88}
+      priority
+      className={className}
+    />
+  );
+
+  if (!href) {
+    return <span className="inline-flex shrink-0">{image}</span>;
+  }
+
   return (
-    <Link href={href} className="inline-flex">
-      <Image
-        src="/ApostolicWorship_DarkBackGround_Transparent.png"
-        alt="Apostolic Worship"
-        width={500}
-        height={500}
-        priority
-        className={className}
-      />
+    <Link href={href} className="inline-flex shrink-0">
+      {image}
     </Link>
   );
 }

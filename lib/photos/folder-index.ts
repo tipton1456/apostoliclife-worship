@@ -169,10 +169,11 @@ export async function getFolderIndex(options?: { refresh?: boolean }) {
 }
 
 export async function bumpFolderIndex(folder: string, count: number, sizeBytes: number) {
-  if (!Number.isInteger(count) || count < 0 || count > 500) {
+  if (!Number.isInteger(count) || count < -500 || count > 500) {
     throw new Error("Unable to update folder totals.");
   }
-  if (!Number.isFinite(sizeBytes) || sizeBytes < 0 || sizeBytes > 20 * 1024 * 1024 * 1024) {
+  const sizeLimit = 20 * 1024 * 1024 * 1024;
+  if (!Number.isFinite(sizeBytes) || sizeBytes < -sizeLimit || sizeBytes > sizeLimit) {
     throw new Error("Unable to update folder totals.");
   }
   if (count === 0 && sizeBytes === 0) return { updated: false };
@@ -204,8 +205,8 @@ export async function bumpFolderIndex(folder: string, count: number, sizeBytes: 
         supabase
           .from("worship_photo_folder_stats")
           .update({
-            photo_count: Number(row.photo_count) + count,
-            size_bytes: Number(row.size_bytes) + sizeBytes,
+            photo_count: Math.max(0, Number(row.photo_count) + count),
+            size_bytes: Math.max(0, Number(row.size_bytes) + sizeBytes),
           })
           .eq("run_id", memory?.runId ?? 0)
           .eq("path", row.path),

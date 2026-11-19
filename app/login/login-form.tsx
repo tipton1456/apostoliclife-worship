@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { MENU_PATH, sanitizeNextPath } from "@/lib/worship-auth/paths";
 
 const fieldClass =
-  "mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-white outline-none ring-[#7bbc07] transition focus:ring-2";
+  "mt-2 w-full rounded-xl border border-white/10 bg-neutral-900 px-4 py-3 text-white outline-none ring-[#7f98f0] transition focus:ring-2";
 
 export default function LoginForm({ nextPath = MENU_PATH }: { nextPath?: string }) {
   const [email, setEmail] = useState("");
@@ -125,7 +125,7 @@ export default function LoginForm({ nextPath = MENU_PATH }: { nextPath?: string 
           type="checkbox"
           checked={rememberMe}
           onChange={(event) => setRememberMe(event.target.checked)}
-          className="h-4 w-4 rounded border-white/20 bg-neutral-900 accent-[#7bbc07]"
+          className="h-4 w-4 rounded border-white/20 bg-neutral-900 accent-[#7f98f0]"
         />
         Remember me
       </label>
@@ -133,12 +133,12 @@ export default function LoginForm({ nextPath = MENU_PATH }: { nextPath?: string 
       <button
         type="submit"
         disabled={isLoading}
-        className="w-full rounded-xl bg-[#7bbc07] px-4 py-3 font-semibold text-neutral-950 transition hover:bg-[#8ed20a] disabled:cursor-not-allowed disabled:opacity-60"
+        className="w-full rounded-xl al-fill px-4 py-3 font-semibold text-[#101536] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60"
       >
         {isLoading ? "Signing In..." : "Sign In"}
       </button>
 
-      <a href="/forgot-password" className="block text-center text-sm font-semibold text-[#7bbc07]">
+      <a href="/forgot-password" className="block text-center text-sm font-semibold text-[#c9d3f7]">
         Forgot password
       </a>
 

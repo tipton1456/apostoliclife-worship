@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import WorshipLogo from "@/app/worship-logo";
 import { WORSHIP_FEATURES } from "@/lib/worship-auth/features";
 import { getCurrentWorshipUser } from "@/lib/worship-auth/users";
 import { MENU_PATH } from "@/lib/worship-auth/paths";
@@ -28,37 +29,54 @@ export default async function MenuPage({
     [currentUser.firstName, currentUser.lastName].filter(Boolean).join(" ") || currentUser.email;
 
   return (
-    <main className="min-h-screen bg-black text-white">
-      <header className="flex flex-wrap items-start justify-between gap-4 px-6 py-5">
-        <p className="pt-2 text-sm font-semibold uppercase tracking-[0.16em] text-[#7bbc07]">Apostolic Worship</p>
-        <nav className="flex max-w-3xl flex-wrap items-center justify-end gap-x-4 gap-y-2 text-sm font-semibold" aria-label="Portal">
-          {menuItems.map((item) => (
-            <Link key={item.href} href={item.href} className="text-neutral-200 hover:text-[#7bbc07]">
-              {item.label}
-            </Link>
-          ))}
-          {currentUser.accessLevel === "admin" ? (
-            <Link href="/admin/users" className="text-neutral-200 hover:text-[#7bbc07]">
-              Users
-            </Link>
-          ) : null}
-          <span className="max-w-[12rem] truncate font-normal text-neutral-400">{displayName}</span>
+    <main className="min-h-screen text-white">
+      <header className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-5">
+        <WorshipLogo href="/home" className="h-10 w-auto" />
+        <div className="flex items-center gap-3 text-sm">
+          <span className="max-w-[14rem] truncate text-[#a9b2c8]">{displayName}</span>
           <form action="/auth/logout" method="post">
-            <button type="submit" className="font-semibold text-neutral-200 hover:text-white">
+            <button type="submit" className="al-ghost px-4 py-2 text-sm">
               Sign out
             </button>
           </form>
-        </nav>
+        </div>
       </header>
-      <div className="mx-auto max-w-3xl px-6 py-16">
-        {denied ? <p className="mb-6 text-sm text-amber-200">That area is not turned on for this account.</p> : null}
-        {menuItems.length === 0 ? (
-          <p className="mb-6 text-sm text-neutral-400">No areas are turned on for this account yet.</p>
+      <div className="mx-auto max-w-6xl px-6 pb-16">
+        {denied ? (
+          <p className="mb-6 text-sm text-amber-200">That area is not turned on for this account.</p>
         ) : null}
-        <p className="text-xl leading-relaxed text-neutral-100 sm:text-2xl">
-          Welcome to the Apostolic Worship Tech Hub. This is designed for file and knowledge sharing for all of the
-          Apostolic Worship department at Apostolic Life
+        <p className="al-eyebrow">Apostolic Worship</p>
+        <h1 className="mt-3 text-4xl font-bold tracking-tight text-white sm:text-5xl">Tech Portal</h1>
+        <p className="mt-4 max-w-2xl text-lg leading-relaxed text-[#a9b2c8]">
+          File and knowledge sharing for the Apostolic Worship department at Apostolic Life.
         </p>
+        {menuItems.length === 0 ? (
+          <p className="mt-10 text-sm text-[#a9b2c8]">No areas are turned on for this account yet.</p>
+        ) : (
+          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {menuItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="al-card block p-6 transition hover:-translate-y-0.5 hover:border-[#93a9f5]"
+              >
+                <p className="text-lg font-bold text-white">{item.label}</p>
+                <p className="mt-2 text-sm leading-6 text-[#a9b2c8]">{item.description}</p>
+              </Link>
+            ))}
+            {currentUser.accessLevel === "admin" ? (
+              <Link
+                href="/admin/users"
+                className="al-card block p-6 transition hover:-translate-y-0.5 hover:border-[#93a9f5]"
+              >
+                <p className="text-lg font-bold text-white">Users</p>
+                <p className="mt-2 text-sm leading-6 text-[#a9b2c8]">
+                  Add people and choose which areas they can open.
+                </p>
+              </Link>
+            ) : null}
+          </div>
+        )}
       </div>
     </main>
   );

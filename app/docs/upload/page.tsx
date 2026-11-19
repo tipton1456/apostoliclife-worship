@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import WorshipLogo from "@/app/worship-logo";
 import { useRouter } from "next/navigation";
 import {
   useCallback,
@@ -147,9 +148,10 @@ export default function DocsUploadPage() {
         <main className="min-h-screen bg-black text-white flex items-center justify-center p-6">
           <form
             onSubmit={handleAccessSubmit}
-            className="w-full max-w-md rounded-2xl border border-white/15 bg-white/5 p-6 space-y-4"
+            className="al-card w-full max-w-md space-y-4 p-6"
           >
-            <h1 className="text-2xl font-black text-[#7bbc07] uppercase">
+            <WorshipLogo href="/docs" className="h-10 w-auto" />
+            <h1 className="text-2xl font-black uppercase text-[#c9d3f7]">
               Upload document
             </h1>
             <p className="text-sm text-gray-400">
@@ -160,13 +162,13 @@ export default function DocsUploadPage() {
               value={accessCode}
               onChange={(e) => setAccessCode(e.target.value)}
               placeholder="Access code"
-              className="w-full rounded-xl bg-black border border-white/20 px-4 py-3 focus:outline-none focus:border-[#7bbc07]"
+              className="w-full rounded-xl bg-black border border-white/20 px-4 py-3 focus:outline-none focus:border-[#93a9f5]"
               autoFocus
             />
             {accessError && <p className="text-sm text-red-300">{accessError}</p>}
             <button
               type="submit"
-              className="w-full rounded-xl bg-[#7bbc07] text-black font-bold py-3"
+              className="w-full rounded-xl al-fill text-[#101536] font-bold py-3"
             >
               Unlock
             </button>
@@ -187,16 +189,15 @@ export default function DocsUploadPage() {
         <div className="mb-4">
           <Link
             href="/docs"
-            className="text-sm text-gray-400 hover:text-[#7bbc07] underline"
+            className="text-sm text-gray-400 hover:text-white underline"
           >
             ← Back to documentation list
           </Link>
         </div>
 
         <header className="mb-6">
-          <p className="text-[#7bbc07] font-semibold tracking-wide uppercase text-sm">
-            Apostolic Worship Documentation
-          </p>
+          <WorshipLogo href="/docs" className="mb-4 h-10 w-auto" />
+          <p className="al-eyebrow">Documentation</p>
           <h1 className="text-3xl sm:text-4xl font-black uppercase tracking-tight">
             Upload document
           </h1>
@@ -223,7 +224,7 @@ export default function DocsUploadPage() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. PreSonus stagebox patch notes"
-              className="w-full rounded-xl bg-black border border-white/20 px-4 py-3 focus:outline-none focus:border-[#7bbc07]"
+              className="w-full rounded-xl bg-black border border-white/20 px-4 py-3 focus:outline-none focus:border-[#93a9f5]"
               required
             />
           </div>
@@ -242,7 +243,7 @@ export default function DocsUploadPage() {
                       setCategory(e.target.value);
                     }
                   }}
-                  className="w-full rounded-xl bg-black border border-white/20 px-4 py-3 focus:outline-none focus:border-[#7bbc07]"
+                  className="w-full rounded-xl bg-black border border-white/20 px-4 py-3 focus:outline-none focus:border-[#93a9f5]"
                   required={!useNewCategory}
                 >
                   <option value="">Select category…</option>
@@ -259,7 +260,7 @@ export default function DocsUploadPage() {
                     value={newCategory}
                     onChange={(e) => setNewCategory(e.target.value)}
                     placeholder="New category name"
-                    className="flex-1 rounded-xl bg-black border border-white/20 px-4 py-3 focus:outline-none focus:border-[#7bbc07]"
+                    className="flex-1 rounded-xl bg-black border border-white/20 px-4 py-3 focus:outline-none focus:border-[#93a9f5]"
                     required
                   />
                   <button
@@ -291,7 +292,7 @@ export default function DocsUploadPage() {
                       setUploadedBy(e.target.value);
                     }
                   }}
-                  className="w-full rounded-xl bg-black border border-white/20 px-4 py-3 focus:outline-none focus:border-[#7bbc07]"
+                  className="w-full rounded-xl bg-black border border-white/20 px-4 py-3 focus:outline-none focus:border-[#93a9f5]"
                   required={!useNewUploader}
                 >
                   <option value="">Select person…</option>
@@ -308,7 +309,7 @@ export default function DocsUploadPage() {
                     value={newUploader}
                     onChange={(e) => setNewUploader(e.target.value)}
                     placeholder="Person’s name"
-                    className="flex-1 rounded-xl bg-black border border-white/20 px-4 py-3 focus:outline-none focus:border-[#7bbc07]"
+                    className="flex-1 rounded-xl bg-black border border-white/20 px-4 py-3 focus:outline-none focus:border-[#93a9f5]"
                     required
                   />
                   <button
@@ -335,7 +336,7 @@ export default function DocsUploadPage() {
               onChange={(e) => setDescription(e.target.value)}
               rows={8}
               placeholder="Notes, how to use this doc, when it applies, related systems…"
-              className="w-full rounded-xl bg-black border border-white/20 px-4 py-3 focus:outline-none focus:border-[#7bbc07] resize-y min-h-[10rem]"
+              className="w-full rounded-xl bg-black border border-white/20 px-4 py-3 focus:outline-none focus:border-[#93a9f5] resize-y min-h-[10rem]"
             />
           </div>
 
@@ -344,7 +345,7 @@ export default function DocsUploadPage() {
             <input
               type="file"
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-              className="block w-full text-sm text-gray-300 file:mr-4 file:rounded-lg file:border-0 file:bg-[#7bbc07] file:px-4 file:py-2 file:font-bold file:text-black"
+              className="block w-full text-sm text-gray-300 file:mr-4 file:rounded-lg file:border-0 file:bg-[#7f98f0] file:px-4 file:py-2 file:font-bold file:text-[#101536]"
               required
             />
             {file && (
@@ -358,7 +359,7 @@ export default function DocsUploadPage() {
             <button
               type="submit"
               disabled={busy}
-              className="rounded-xl bg-[#7bbc07] text-black font-bold px-6 py-3 disabled:opacity-40"
+              className="rounded-xl al-fill text-[#101536] font-bold px-6 py-3 disabled:opacity-40"
             >
               {busy ? "Uploading…" : "Upload document"}
             </button>
