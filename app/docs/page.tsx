@@ -6,9 +6,12 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type FormEvent,
+  type MouseEvent as ReactMouseEvent,
 } from "react";
+import DocxViewer from "./docx-viewer";
 import PdfJsViewer from "./PdfJsViewer";
 
 type FileKind =
@@ -110,6 +113,12 @@ function FileThumb({ doc, small }: { doc: Doc; small?: boolean }) {
   );
 }
 
+function isDocxFile(doc: Doc) {
+  const name = doc.originalFilename.toLowerCase();
+  const type = (doc.contentType || "").toLowerCase();
+  return name.endsWith(".docx") || type.includes("wordprocessingml");
+}
+
 function isBrowserViewable(doc: Doc) {
   const kind = doc.kind || "file";
   return (
@@ -141,6 +150,12 @@ export default function DocsPage() {
   const [viewError, setViewError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [menu, setMenu] = useState<{ doc: Doc; x: number; y: number } | null>(null);
+  const [moveDoc, setMoveDoc] = useState<Doc | null>(null);
+  const [moveFolder, setMoveFolder] = useState("");
+  const [busyAction, setBusyAction] = useState(false);
+  const [undoArchive, setUndoArchive] = useState<{ id: string; title: string } | null>(null);
+  const shareFiles = useRef(new Map<string, File>());
 
   const authHeaders = useCallback(
     (extra?: HeadersInit): HeadersInit => {
@@ -235,8 +250,9 @@ export default function DocsPage() {
       return;
     }
 
-    // PDFs are rendered by PdfJsViewer via /api/docs/view — skip signed URL
-    if ((selectedDoc.kind || "file") === "pdf") {
+    // PDFs and Word files render from /api/docs/view, so they skip the signed URL.
+    const kind = selectedDoc.kind || "file";
+    if (kind === "pdf" || kind === "doc") {
       setViewUrl(null);
       setViewLoading(false);
       setViewError(null);
@@ -307,6 +323,134 @@ export default function DocsPage() {
       window.setTimeout(() => setLinkCopied(false), 2000);
     } catch {
       setViewError("Unable to copy the file link.");
+    }
+  }
+
+  useEffect(() => {
+    if (!menu) return;
+    function close() {
+      setMenu(null);
+    }
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") close();
+    }
+    window.addEventListener("pointerdown", close);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("pointerdown", close);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [menu]);
+
+  function openFileMenu(event: ReactMouseEvent, doc: Doc) {
+    event.preventDefault();
+    event.stopPropagation();
+    setSelectedId(doc.id);
+    const x = Math.max(8, Math.min(event.clientX, window.innerWidth - 196));
+    const y = Math.max(8, Math.min(event.clientY, window.innerHeight - 148));
+    setMenu({ doc, x, y });
+    void fileForShare(doc).catch(() => undefined);
+  }
+
+  async function fileForShare(doc: Doc) {
+    const cached = shareFiles.current.get(doc.id);
+    if (cached) return cached;
+    const response = await fetch(`/api/docs/view?id=${encodeURIComponent(doc.id)}`, {
+      headers: authHeaders(),
+    });
+    if (!response.ok) throw new Error("Could not prepare that file to share");
+    const blob = await response.blob();
+    const file = new File([blob], doc.originalFilename || `${doc.title}.bin`, {
+      type: blob.type || doc.contentType || "application/octet-stream",
+    });
+    shareFiles.current.set(doc.id, file);
+    return file;
+  }
+
+  async function runManage(action: "move" | "archive" | "restore", id: string, category?: string) {
+    const response = await fetch("/api/docs/manage", {
+      method: "POST",
+      headers: authHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ action, id, category }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Could not update that file");
+    setDocuments((data.documents || []) as Doc[]);
+    setCategories(data.categories || []);
+    return data as { title?: string; archivedFrom?: string | null };
+  }
+
+  async function archiveFile(doc: Doc) {
+    setMenu(null);
+    setBusyAction(true);
+    setError(null);
+    try {
+      const data = await runManage("archive", doc.id);
+      setUndoArchive({ id: doc.id, title: data.title || doc.title });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not archive that file");
+    } finally {
+      setBusyAction(false);
+    }
+  }
+
+  async function restoreArchivedFile() {
+    if (!undoArchive) return;
+    setBusyAction(true);
+    setError(null);
+    try {
+      await runManage("restore", undoArchive.id);
+      setUndoArchive(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not restore that file");
+    } finally {
+      setBusyAction(false);
+    }
+  }
+
+  async function confirmMove(event: FormEvent) {
+    event.preventDefault();
+    if (!moveDoc) return;
+    const folder = moveFolder.trim();
+    if (!folder) {
+      setError("Choose a folder or type a new one.");
+      return;
+    }
+    setBusyAction(true);
+    setError(null);
+    try {
+      await runManage("move", moveDoc.id, folder);
+      shareFiles.current.delete(moveDoc.id);
+      setMoveDoc(null);
+      setMoveFolder("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not move that file");
+    } finally {
+      setBusyAction(false);
+    }
+  }
+
+  async function shareFile(doc: Doc) {
+    setMenu(null);
+    setError(null);
+    try {
+      if (!navigator.share) {
+        setError("Open this library in Safari to use the Mac share menu for Mail, Messages, and AirDrop.");
+        return;
+      }
+      const file = await fileForShare(doc);
+      const payload: ShareData = { files: [file], title: doc.title };
+      if (navigator.canShare && !navigator.canShare(payload)) {
+        await navigator.share({
+          title: doc.title,
+          url: `${window.location.origin}/file/${doc.id}`,
+        });
+        return;
+      }
+      await navigator.share(payload);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      setError(err instanceof Error ? err.message : "Could not open the share menu");
     }
   }
 
@@ -513,7 +657,9 @@ export default function DocsPage() {
                           <li key={doc.id}>
                             <button
                               type="button"
+                              onContextMenu={(event) => openFileMenu(event, doc)}
                               onClick={() => {
+                                setMenu(null);
                                 setSelectedId(doc.id);
                                 // On small screens, auto-hide tree after select
                                 if (
@@ -626,6 +772,28 @@ export default function DocsPage() {
                     headers={viewHeaders}
                     title={selectedDoc.title}
                   />
+                ) : isDocxFile(selectedDoc) ? (
+                  <DocxViewer
+                    key={selectedDoc.id}
+                    src={`/api/docs/view?id=${encodeURIComponent(selectedDoc.id)}`}
+                    headers={viewHeaders}
+                    title={selectedDoc.title}
+                  />
+                ) : (selectedDoc.kind || "file") === "doc" ? (
+                  <div className="flex h-full items-center justify-center p-6 text-center">
+                    <div className="max-w-md space-y-3">
+                      <p className="text-sm text-[#a9b2c8]">
+                        This older Word file can’t be shown in the viewer. Download it to open it in Word.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handleDownload}
+                        className="rounded-full al-fill px-4 py-2 text-sm font-bold text-[#101536]"
+                      >
+                        Download
+                      </button>
+                    </div>
+                  </div>
                 ) : (
                   <>
                     {viewLoading && (
@@ -662,6 +830,113 @@ export default function DocsPage() {
           )}
         </section>
       </div>
+
+      {menu ? (
+        <div
+          role="menu"
+          className="al-card fixed z-50 w-44 overflow-hidden p-1 shadow-2xl"
+          style={{ left: menu.x, top: menu.y }}
+          onPointerDown={(event) => event.stopPropagation()}
+        >
+          <button
+            type="button"
+            role="menuitem"
+            className="block w-full rounded-xl px-3 py-2 text-left text-sm font-semibold hover:bg-white/10"
+            onClick={() => {
+              setMoveDoc(menu.doc);
+              setMoveFolder("");
+              setMenu(null);
+            }}
+          >
+            Move
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            disabled={busyAction}
+            className="block w-full rounded-xl px-3 py-2 text-left text-sm font-semibold hover:bg-white/10 disabled:opacity-50"
+            onClick={() => void archiveFile(menu.doc)}
+          >
+            Delete
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className="block w-full rounded-xl px-3 py-2 text-left text-sm font-semibold hover:bg-white/10"
+            onClick={() => void shareFile(menu.doc)}
+          >
+            Share
+          </button>
+        </div>
+      ) : null}
+
+      {moveDoc ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <form onSubmit={(event) => void confirmMove(event)} className="al-card w-full max-w-md p-5">
+            <p className="al-eyebrow">Move file</p>
+            <h2 className="mt-2 truncate text-xl font-bold">{moveDoc.title}</h2>
+            <p className="mt-1 text-sm text-[#a9b2c8]">Choose the folder this file should live in.</p>
+            <div className="mt-4 max-h-56 space-y-1 overflow-y-auto">
+              {categories
+                .filter((category) => category !== moveDoc.category)
+                .map((category) => (
+                  <button
+                    key={category}
+                    type="button"
+                    onClick={() => setMoveFolder(category)}
+                    className={`block w-full rounded-xl px-3 py-2 text-left text-sm ${
+                      moveFolder === category ? "bg-[#7f98f0]/25 text-white" : "hover:bg-white/10"
+                    }`}
+                  >
+                    {category}
+                  </button>
+                ))}
+            </div>
+            <label className="mt-4 block text-sm text-[#a9b2c8]">
+              Or a new folder
+              <input
+                value={categories.includes(moveFolder) ? "" : moveFolder}
+                onChange={(event) => setMoveFolder(event.target.value)}
+                className="mt-1 w-full rounded-xl border border-[#272a35] bg-[#141824] px-3 py-2 text-white outline-none focus:border-[#93a9f5]"
+                placeholder="Folder name"
+              />
+            </label>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                className="al-ghost px-4 py-2 text-sm"
+                onClick={() => {
+                  setMoveDoc(null);
+                  setMoveFolder("");
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={busyAction || !moveFolder.trim()}
+                className="rounded-full al-fill px-4 py-2 text-sm font-bold text-[#101536] disabled:opacity-50"
+              >
+                Move
+              </button>
+            </div>
+          </form>
+        </div>
+      ) : null}
+
+      {undoArchive ? (
+        <div className="fixed bottom-4 left-1/2 z-40 flex -translate-x-1/2 items-center gap-3 rounded-full border border-[#272a35] bg-[#181c2c] px-4 py-2 text-sm shadow-2xl">
+          <span className="max-w-xs truncate">“{undoArchive.title}” was archived.</span>
+          <button
+            type="button"
+            disabled={busyAction}
+            onClick={() => void restoreArchivedFile()}
+            className="font-bold text-[#c9d3f7] disabled:opacity-50"
+          >
+            Undo
+          </button>
+        </div>
+      ) : null}
     </main>
   );
 }

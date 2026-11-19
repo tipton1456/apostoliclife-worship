@@ -12,9 +12,9 @@ export default async function MenuPage({
 }) {
   const currentUser = await getCurrentWorshipUser();
   const denied = (await searchParams)?.denied === "1";
+  const menuKeys = new Set(["photos", "docs", "choir_sunday"]);
   const menuItems = WORSHIP_FEATURES.filter((feature) => {
-    if (feature.key === "control_panel" && process.env.NODE_ENV !== "development") return false;
-    return Boolean(currentUser?.features.includes(feature.key));
+    return menuKeys.has(feature.key) && Boolean(currentUser?.features.includes(feature.key));
   });
 
   if (!currentUser?.active) {
@@ -50,33 +50,40 @@ export default async function MenuPage({
         <p className="mt-4 max-w-2xl text-lg leading-relaxed text-[#a9b2c8]">
           File and knowledge sharing for the Apostolic Worship department at Apostolic Life.
         </p>
-        {menuItems.length === 0 ? (
-          <p className="mt-10 text-sm text-[#a9b2c8]">No areas are turned on for this account yet.</p>
-        ) : (
-          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {menuItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="al-card block p-6 transition hover:-translate-y-0.5 hover:border-[#93a9f5]"
-              >
-                <p className="text-lg font-bold text-white">{item.label}</p>
-                <p className="mt-2 text-sm leading-6 text-[#a9b2c8]">{item.description}</p>
-              </Link>
-            ))}
-            {currentUser.accessLevel === "admin" ? (
-              <Link
-                href="/admin/users"
-                className="al-card block p-6 transition hover:-translate-y-0.5 hover:border-[#93a9f5]"
-              >
-                <p className="text-lg font-bold text-white">Users</p>
-                <p className="mt-2 text-sm leading-6 text-[#a9b2c8]">
-                  Add people and choose which areas they can open.
-                </p>
-              </Link>
-            ) : null}
-          </div>
-        )}
+        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {menuItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="al-card block p-6 transition hover:-translate-y-0.5 hover:border-[#93a9f5]"
+            >
+              <p className="text-lg font-bold text-white">{item.label}</p>
+              <p className="mt-2 text-sm leading-6 text-[#a9b2c8]">{item.description}</p>
+            </Link>
+          ))}
+          <a
+            href="https://alctupelo.flocksync.app"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="al-card block p-6 transition hover:-translate-y-0.5 hover:border-[#93a9f5]"
+          >
+            <p className="text-lg font-bold text-white">FlockSync</p>
+            <p className="mt-2 text-sm leading-6 text-[#a9b2c8]">
+              Open the FlockSync church app in a new window.
+            </p>
+          </a>
+          {currentUser.accessLevel === "admin" ? (
+            <Link
+              href="/admin/users"
+              className="al-card block p-6 transition hover:-translate-y-0.5 hover:border-[#93a9f5]"
+            >
+              <p className="text-lg font-bold text-white">Users</p>
+              <p className="mt-2 text-sm leading-6 text-[#a9b2c8]">
+                Add people and choose which areas they can open.
+              </p>
+            </Link>
+          ) : null}
+        </div>
       </div>
     </main>
   );

@@ -5,6 +5,8 @@ import type { FileKind, TechDoc, TechDocListItem } from "./types";
 const BUCKET = "worship-tech-docs";
 const META_PATH = "meta/library.json";
 const THUMBNAIL_TTL_SECONDS = 60 * 30; // 30 minutes
+/** Hidden library folder. Delete moves a file here so it can be restored. */
+export const ARCHIVE_CATEGORY = "__Archive";
 
 const DEFAULT_CATEGORIES = [
   "General",
@@ -151,9 +153,13 @@ async function writeMeta(meta: LibraryMeta): Promise<void> {
   }
 }
 
+export function isArchiveCategory(name: string) {
+  return name.trim().toLowerCase() === ARCHIVE_CATEGORY.toLowerCase();
+}
+
 export async function listCategories(): Promise<string[]> {
   const meta = await readMeta();
-  return meta.categories;
+  return meta.categories.filter((category) => !isArchiveCategory(category));
 }
 
 export async function listUploaders(): Promise<string[]> {
@@ -164,6 +170,7 @@ export async function listUploaders(): Promise<string[]> {
 export async function ensureCategory(name: string): Promise<string> {
   const trimmed = name.trim();
   if (!trimmed) throw new Error("Category name is required");
+  if (isArchiveCategory(trimmed)) throw new Error("That folder name is reserved");
   const meta = await readMeta();
   if (!meta.categories.includes(trimmed)) {
     meta.categories = [...meta.categories, trimmed].sort((a, b) =>
@@ -209,9 +216,9 @@ export async function listDocuments(options?: {
   q?: string;
 }): Promise<TechDocListItem[]> {
   const meta = await readMeta();
-  let docs = [...meta.documents].sort(
-    (a, b) => +new Date(b.createdAt) - +new Date(a.createdAt)
-  );
+  let docs = [...meta.documents]
+    .filter((doc) => !isArchiveCategory(doc.category))
+    .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
 
   if (options?.category?.trim()) {
     const cat = options.category.trim();
@@ -473,6 +480,115 @@ export async function createSignedDownloadUrl(
     filename: doc.originalFilename,
     contentType: doc.contentType,
   };
+}
+
+function storedFileName(storagePath: string, id: string, originalFilename: string) {
+  const existing = storagePath.split("/").pop();
+  if (existing) return existing;
+  return `${id}-${safeFileSegment(originalFilename || "file")}`;
+}
+
+async function relocateStoredFile(from: string, to: string, contentType: string) {
+  if (from === to) return;
+  const supabase = createAdminClient();
+  const moved = await supabase.storage.from(BUCKET).move(from, to);
+  if (!moved.error) return;
+
+  const { data, error } = await supabase.storage.from(BUCKET).download(from);
+  if (error || !data) {
+    throw new Error(moved.error?.message || error?.message || "Could not move the file");
+  }
+  const upload = await supabase.storage.from(BUCKET).upload(to, Buffer.from(await data.arrayBuffer()), {
+    contentType: contentType || data.type || "application/octet-stream",
+    upsert: false,
+  });
+  if (upload.error) {
+    throw new Error(upload.error.message);
+  }
+  await supabase.storage.from(BUCKET).remove([from]);
+}
+
+async function placeDocument(
+  id: string,
+  category: string,
+  options?: { archivedFrom?: string | null }
+): Promise<{ title: string; category: string; archivedFrom: string | null }> {
+  const nextCategory = category.trim();
+  if (!nextCategory) throw new Error("Folder is required");
+
+  const meta = await readMeta();
+  const index = meta.documents.findIndex((doc) => doc.id === id);
+  if (index < 0) throw new Error("Document not found");
+  const doc = meta.documents[index];
+  if (doc.category === nextCategory) {
+    return {
+      title: doc.title,
+      category: doc.category,
+      archivedFrom: doc.archivedFrom || null,
+    };
+  }
+
+  const nextPath = `files/${safeFileSegment(nextCategory)}/${storedFileName(
+    doc.storagePath,
+    doc.id,
+    doc.originalFilename
+  )}`;
+  await relocateStoredFile(doc.storagePath, nextPath, doc.contentType);
+
+  const updated: TechDoc = {
+    ...doc,
+    category: nextCategory,
+    storagePath: nextPath,
+    archivedFrom: options?.archivedFrom ?? null,
+  };
+  meta.documents[index] = updated;
+  if (!isArchiveCategory(nextCategory) && !meta.categories.includes(nextCategory)) {
+    meta.categories = [...meta.categories, nextCategory].sort((a, b) => a.localeCompare(b));
+  }
+  try {
+    await writeMeta(meta);
+  } catch (err) {
+    await relocateStoredFile(nextPath, doc.storagePath, doc.contentType).catch(() => undefined);
+    throw err;
+  }
+  return {
+    title: updated.title,
+    category: updated.category,
+    archivedFrom: updated.archivedFrom || null,
+  };
+}
+
+export async function moveDocument(id: string, category: string) {
+  const nextCategory = category.trim();
+  if (isArchiveCategory(nextCategory)) {
+    throw new Error("Choose a visible folder");
+  }
+  return placeDocument(id, nextCategory, { archivedFrom: null });
+}
+
+export async function archiveDocument(id: string) {
+  const meta = await readMeta();
+  const doc = meta.documents.find((item) => item.id === id);
+  if (!doc) throw new Error("Document not found");
+  if (isArchiveCategory(doc.category)) {
+    return {
+      title: doc.title,
+      category: doc.category,
+      archivedFrom: doc.archivedFrom || null,
+    };
+  }
+  return placeDocument(id, ARCHIVE_CATEGORY, { archivedFrom: doc.category });
+}
+
+export async function restoreDocument(id: string) {
+  const meta = await readMeta();
+  const doc = meta.documents.find((item) => item.id === id);
+  if (!doc) throw new Error("Document not found");
+  const folder = doc.archivedFrom?.trim();
+  if (!folder || isArchiveCategory(folder)) {
+    throw new Error("This file has no folder to return to");
+  }
+  return placeDocument(id, folder, { archivedFrom: null });
 }
 
 export async function deleteDocument(id: string): Promise<void> {

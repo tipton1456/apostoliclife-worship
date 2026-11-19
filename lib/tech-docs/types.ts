@@ -11,6 +11,8 @@ export type TechDoc = {
   contentType: string;
   fileSize: number;
   createdAt: string;
+  /** Folder this file came from when it was archived. Hidden from the library tree. */
+  archivedFrom?: string | null;
 };
 
 export type FileKind =
