@@ -333,6 +333,9 @@ export default function SocialWizard({
               className="mt-2 w-full rounded-xl border border-white/15 bg-black px-3 py-3 text-base font-normal text-white"
             />
           </label>
+          <p className="mt-2 text-sm text-neutral-400">
+            The free site plan checks for due posts once each morning. After you approve a set, it posts on that check, or right away from the approval queue.
+          </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <button type="button" className="al-ghost px-4 py-3 text-sm" onClick={() => setStep("choose")}>
               Back
