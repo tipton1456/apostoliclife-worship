@@ -25,7 +25,7 @@ export default async function SocialPostsPage({
       <SocialWizard
         folder={folder}
         photographer={user.firstName}
-        adobeClientId={process.env.NEXT_PUBLIC_ADOBE_EXPRESS_CLIENT_ID || ""}
+        adobeClientId={process.env.ADOBE_EXPRESS_CLIENT_ID || ""}
         isAdmin={user.accessLevel === "admin"}
       />
     </main>

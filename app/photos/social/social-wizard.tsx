@@ -254,7 +254,7 @@ export default function SocialWizard({
       ) : null}
       {!ready.adobe && step === "edit" ? (
         <p className="mt-4 rounded-xl border border-white/10 px-3 py-2 text-sm text-neutral-300">
-          Adobe Express editing needs an API key from the Adobe Developer Console, saved as NEXT_PUBLIC_ADOBE_EXPRESS_CLIENT_ID. You can still choose photos and send them for approval.
+          Adobe Express editing needs an API key from the Adobe Developer Console, saved as ADOBE_EXPRESS_CLIENT_ID. You can still choose photos and send them for approval.
         </p>
       ) : null}
 

@@ -19,7 +19,7 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: "Sign in to prepare social posts." }, { status: 401 });
 
   return NextResponse.json({
-    adobe: Boolean(process.env.NEXT_PUBLIC_ADOBE_EXPRESS_CLIENT_ID),
+    adobe: Boolean(process.env.ADOBE_EXPRESS_CLIENT_ID),
     ai: Boolean(process.env.XAI_API_KEY),
     publishing: socialPublishingReady(),
     sms: Boolean(getTwilioConfig()),
