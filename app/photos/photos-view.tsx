@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import PhotoDetail from "@/app/photos/photo-detail";
 import PhotoManageDialog, { type ManageStep } from "@/app/photos/photo-manage";
@@ -69,6 +70,9 @@ export default function PhotosView() {
   const [people, setPeople] = useState<PersonSummary[]>([]);
   const [peopleError, setPeopleError] = useState("");
   const [uploading, setUploading] = useState("");
+  const [newFolderOpen, setNewFolderOpen] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [creatingFolder, setCreatingFolder] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<PhotoDetails | null>(null);
@@ -327,6 +331,36 @@ export default function PhotosView() {
       if (!saved.ok || savedBody?.updated === false) void refreshTree(true);
     }
     await selectFolder(folder);
+  }
+
+  async function createFolder() {
+    if (mode.type !== "folder" || creatingFolder) return;
+    const name = newFolderName.trim();
+    if (!name) return;
+    setCreatingFolder(true);
+    setGalleryError("");
+    const response = await fetch("/api/photos/folders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ parent: mode.path, name }),
+    });
+    const body = (await response.json().catch(() => null)) as { path?: string; name?: string; parentPath?: string; error?: string } | null;
+    setCreatingFolder(false);
+    if (!response.ok || !body?.path || !body.name) {
+      setGalleryError(body?.error || "Unable to create that folder.");
+      return;
+    }
+    const created = body.path;
+    setStats((current) =>
+      current.some((item) => item.path === created)
+        ? current
+        : [...current, { path: created, name: body.name || name, parentPath: body.parentPath ?? "", photoCount: 0, sizeBytes: 0 }],
+    );
+    setNewFolderName("");
+    setNewFolderOpen(false);
+    setNotice(`Created ${body.name}.`);
+    await selectFolder(created);
+    void refreshTree(true);
   }
 
   const picked = new Set(pickedIds);
@@ -645,11 +679,38 @@ export default function PhotosView() {
               >
                 {faceOpen ? "Close faces" : "Find faces"}
               </button>
+              <Link
+                href={`/photos/social?folder=${encodeURIComponent(mode.path)}`}
+                className="rounded-xl border border-white/15 px-4 py-2 text-sm font-semibold text-white hover:bg-white/5"
+              >
+                Social posts
+              </Link>
+              <button
+                type="button"
+                className="rounded-xl border border-white/15 px-4 py-2 text-sm font-semibold text-white hover:bg-white/5"
+                onClick={() => setNewFolderOpen((open) => !open)}
+              >
+                New folder
+              </button>
+              <label className="cursor-pointer rounded-xl border border-white/15 px-4 py-2 text-sm font-semibold text-white hover:bg-white/5">
+                Camera
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  disabled={Boolean(uploading)}
+                  onChange={(event) => {
+                    void uploadFiles(event.target.files);
+                    event.target.value = "";
+                  }}
+                />
+              </label>
               <label className="cursor-pointer rounded-xl al-fill px-4 py-2 text-sm font-semibold text-[#101536]">
                 {uploading ? `Uploading ${uploading}` : "Upload photos"}
                 <input
                   type="file"
-                  accept="image/jpeg,image/png,image/tiff,image/gif,image/webp,image/bmp,.jpg,.jpeg,.png,.tif,.tiff,.gif,.webp,.bmp"
+                  accept="image/*,.heic,.heif,.jpg,.jpeg,.png,.tif,.tiff,.gif,.webp,.bmp"
                   multiple
                   className="hidden"
                   disabled={Boolean(uploading)}
@@ -664,6 +725,30 @@ export default function PhotosView() {
             <p className="text-sm text-neutral-500">Photos tagged {mode.tag}</p>
           )}
         </div>
+
+        {mode.type === "folder" && newFolderOpen ? (
+          <form
+            className="mt-4 flex flex-wrap items-center gap-2"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void createFolder();
+            }}
+          >
+            <label className="text-sm text-neutral-300" htmlFor="new-folder">
+              Folder name
+              <input
+                id="new-folder"
+                value={newFolderName}
+                onChange={(event) => setNewFolderName(event.target.value)}
+                placeholder="Sunday morning"
+                className="ml-2 rounded-xl border border-white/15 bg-black px-3 py-2 text-white"
+              />
+            </label>
+            <button type="submit" className="al-fill px-4 py-2 text-sm" disabled={creatingFolder || !newFolderName.trim()}>
+              {creatingFolder ? "Creating…" : "Create folder"}
+            </button>
+          </form>
+        ) : null}
 
         {mode.type === "folder" && faceOpen ? (
           <FaceReview

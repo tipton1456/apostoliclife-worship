@@ -327,7 +327,7 @@ export async function photoMetadata(relativePath: string) {
   return photoDetailsFromFile(file);
 }
 
-async function dropboxThumbnail(relativePath: string, size: "w256h256" | "w2048h1536") {
+async function dropboxThumbnail(relativePath: string, size: "w256h256" | "w640h480" | "w2048h1536") {
   const token = await accessToken();
   const response = await fetch("https://content.dropboxapi.com/2/files/get_thumbnail_v2", {
     method: "POST",
@@ -354,6 +354,10 @@ export async function photoThumbnail(relativePath: string) {
   return dropboxThumbnail(relativePath, "w256h256");
 }
 
+export async function photoReviewImage(relativePath: string) {
+  return dropboxThumbnail(relativePath, "w640h480");
+}
+
 export async function photoPreview(relativePath: string) {
   if (!isPhotoFile(relativePath)) throw new Error("That file is not a photo.");
   return dropboxThumbnail(relativePath, "w2048h1536");
@@ -371,10 +375,56 @@ export async function photoTemporaryLink(relativePath: string) {
   return result.link;
 }
 
+function isUploadablePhoto(name: string) {
+  const extension = fileExtension(name);
+  return isGalleryImage(name) || extension === "heic" || extension === "heif";
+}
+
+export function safeFolderName(name: string) {
+  const cleaned = name
+    .trim()
+    .replace(/[\\/]+/g, " ")
+    .replace(/[\u0000-\u001f]/g, "")
+    .replace(/\s+/g, " ")
+    .slice(0, 80);
+  if (!cleaned || cleaned === "." || cleaned === "..") {
+    throw new Error("Enter a folder name.");
+  }
+  return cleaned;
+}
+
+export async function createPhotoFolder(parent: string, name: string) {
+  const folderName = safeFolderName(name);
+  const relative = parent ? `${parent}/${folderName}` : folderName;
+  const fullPath = resolvePhotoPath(relative);
+  const token = await accessToken();
+
+  try {
+    await dropboxJson("https://api.dropboxapi.com/2/files/create_folder_v2", { path: fullPath, autorename: false }, token);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    if (!message.includes("(path)")) throw error;
+  }
+
+  const meta = await dropboxJson<DropboxEntry>("https://api.dropboxapi.com/2/files/get_metadata", { path: fullPath }, token);
+  if (meta[".tag"] !== "folder") throw new Error("A file with that name already exists.");
+  return relative;
+}
+
+export async function ensurePhotoFolder(relativePath: string) {
+  const parts = relativePath
+    .split("/")
+    .map((part) => part.trim())
+    .filter((part) => part && part !== "." && part !== "..");
+  let parent = "";
+  for (const part of parts) parent = await createPhotoFolder(parent, part);
+  return parent;
+}
+
 export async function photoUploadLink(folder: string, filename: string) {
   const name = safePhotoName(filename);
-  if (!isGalleryImage(name)) {
-    throw new Error("Upload a JPG, PNG, TIFF, GIF, WebP, or BMP file.");
+  if (!isUploadablePhoto(name)) {
+    throw new Error("Upload a JPG, PNG, TIFF, GIF, WebP, BMP, or HEIC photo.");
   }
 
   const token = await accessToken();
@@ -460,7 +510,12 @@ async function downloadDropboxBytes(token: string, fileId: string) {
   throw new Error("Unable to read that file from Dropbox.");
 }
 
-async function uploadGalleryBytes(folder: string, filename: string, bytes: Buffer) {
+export async function downloadPhotoFile(relativePath: string) {
+  const token = await accessToken();
+  return downloadDropboxBytes(token, resolvePhotoPath(relativePath));
+}
+
+export async function uploadGalleryBytes(folder: string, filename: string, bytes: Buffer) {
   const { link, name } = await photoUploadLink(folder, filename);
   const response = await fetch(link, {
     method: "POST",

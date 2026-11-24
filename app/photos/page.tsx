@@ -18,7 +18,7 @@ export default async function PhotosPage() {
           <div className="min-w-0">
             <h1 className="text-2xl font-bold tracking-tight">Photos</h1>
             <p className="mt-0.5 truncate text-sm text-[#a9b2c8]">
-              Folders on the left, photos in the middle, and details with people tags on the right.
+              Upload from the camera or library, then send a set through Social posts.
             </p>
           </div>
         </div>
