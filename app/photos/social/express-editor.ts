@@ -33,10 +33,12 @@ function adobeErrorMessage(error: unknown) {
   if (code === "INVALID_IMAGE_DATA_URL" || code === "INVALID_ASSET_DATA_TYPE") {
     return "Adobe Express could not read that photo. Choose a JPG or PNG.";
   }
+  const host = typeof window === "undefined" ? "" : window.location.host;
   const extra = [code, detail].filter((item) => item && item !== "[object Object]").join(": ");
+  const where = host ? ` from ${host}` : "";
   return extra
-    ? `Adobe Express could not open (${extra}). In the Adobe console, the allowed domain must be apostoliclife-worship.vercel.app with no https://.`
-    : "Adobe Express could not open. In the Adobe console, the allowed domain must be apostoliclife-worship.vercel.app with no https://.";
+    ? `Adobe Express could not open${where} (${extra}). The Adobe credential name must be exactly Apostolic Worship.`
+    : `Adobe Express could not open${where}. The Adobe credential name must be exactly Apostolic Worship.`;
 }
 
 function loadSdk() {
