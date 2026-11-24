@@ -7,7 +7,12 @@ type PublishParams = {
 };
 
 type ExpressEditor = {
-  createWithAsset: (docConfig: unknown, appConfig: unknown, exportConfig: unknown) => void;
+  createWithAsset: (
+    docConfig: unknown,
+    appConfig: unknown,
+    exportConfig: unknown,
+    containerConfig?: { zIndex?: number },
+  ) => void;
 };
 
 type AdobeSdk = {
@@ -137,6 +142,8 @@ export async function editPhotoInExpress(options: {
           style: { uiType: "button" },
         },
       ],
+      // The site content is position relative at z-10, and Adobe's window has no z-index, so it opens behind the gallery.
+      { zIndex: 1000 },
     );
   });
 }
