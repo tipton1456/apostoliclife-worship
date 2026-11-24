@@ -30,15 +30,21 @@ function adobeErrorMessage(error: unknown) {
   if (code === "INVALID_SIZE_VALUE" || code === "INVALID_ASPECT_RATIO_VALUE") {
     return "Adobe Express could not open that photo size. Try a JPG.";
   }
-  if (code === "INVALID_IMAGE_DATA_URL" || code === "INVALID_ASSET_DATA_TYPE") {
-    return "Adobe Express could not read that photo. Choose a JPG or PNG.";
+  if (code === "INVALID_ASSET_TYPE" || code === "INVALID_IMAGE_DATA_URL" || code === "INVALID_ASSET_DATA_TYPE") {
+    return "Adobe Express could not read that photo. Try a JPG.";
   }
   const host = typeof window === "undefined" ? "" : window.location.host;
   const extra = [code, detail].filter((item) => item && item !== "[object Object]").join(": ");
   const where = host ? ` from ${host}` : "";
-  return extra
-    ? `Adobe Express could not open${where} (${extra}). The Adobe credential name must be exactly Apostolic Worship.`
-    : `Adobe Express could not open${where}. The Adobe credential name must be exactly Apostolic Worship.`;
+  return extra ? `Adobe Express could not open${where} (${extra}).` : `Adobe Express could not open${where}.`;
+}
+
+// The Embed SDK loads this string with Image.src and fetch(). Raw base64 fails both
+// and is reported as INVALID_ASSET_TYPE.
+function expressImageData(base64: string) {
+  const trimmed = base64.trim();
+  if (trimmed.startsWith("data:image/")) return trimmed;
+  return `data:image/jpeg;base64,${trimmed}`;
 }
 
 function loadSdk() {
@@ -102,7 +108,7 @@ export async function editPhotoInExpress(options: {
     editor.createWithAsset(
       {
         asset: {
-          data: options.base64,
+          data: expressImageData(options.base64),
           dataType: "base64",
           type: "image",
         },
