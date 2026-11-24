@@ -23,6 +23,22 @@ declare global {
 let loading: Promise<void> | null = null;
 let editorPromise: Promise<ExpressEditor> | null = null;
 
+function adobeErrorMessage(error: unknown) {
+  const record = typeof error === "object" && error ? (error as { code?: string; message?: string; toString?: () => string }) : null;
+  const code = typeof error === "string" ? error : record?.code || "";
+  const detail = error instanceof Error ? error.message : record?.message || (record?.toString ? record.toString() : "");
+  if (code === "INVALID_SIZE_VALUE" || code === "INVALID_ASPECT_RATIO_VALUE") {
+    return "Adobe Express could not open that photo size. Try a JPG.";
+  }
+  if (code === "INVALID_IMAGE_DATA_URL" || code === "INVALID_ASSET_DATA_TYPE") {
+    return "Adobe Express could not read that photo. Choose a JPG or PNG.";
+  }
+  const extra = [code, detail].filter((item) => item && item !== "[object Object]").join(": ");
+  return extra
+    ? `Adobe Express could not open (${extra}). In the Adobe console, the allowed domain must be apostoliclife-worship.vercel.app with no https://.`
+    : "Adobe Express could not open. In the Adobe console, the allowed domain must be apostoliclife-worship.vercel.app with no https://.";
+}
+
 function loadSdk() {
   if (window.CCEverywhere) return Promise.resolve();
   if (loading) return loading;
@@ -88,12 +104,11 @@ export async function editPhotoInExpress(options: {
           dataType: "base64",
           type: "image",
         },
-        canvasSize: { width: 1080, height: 1080 },
       },
       {
         callbacks: {
           onCancel: () => finish(new Error("Editing was cancelled.")),
-          onError: () => finish(new Error("Adobe Express ran into a problem. Check that this site is allowed on the Adobe API key.")),
+          onError: (error: unknown) => finish(new Error(adobeErrorMessage(error))),
           onPublish: async (_intent: string, params: PublishParams) => {
             const data = params.asset?.[0]?.data;
             if (!data) throw new Error("Adobe Express did not return an image.");
@@ -109,7 +124,6 @@ export async function editPhotoInExpress(options: {
           action: {
             target: "publish",
             outputType: "base64",
-            publishFileType: "JPEG",
             closeTargetOnExport: true,
           },
           style: { uiType: "button" },

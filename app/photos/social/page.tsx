@@ -3,7 +3,7 @@ import SocialWizard from "@/app/photos/social/social-wizard";
 import WorshipLogo from "@/app/worship-logo";
 import { requireWorshipFeature } from "@/lib/worship-auth/guard";
 
-export const metadata = { title: "Social posts" };
+export const metadata = { title: "Social posts", referrer: "strict-origin-when-cross-origin" };
 
 export default async function SocialPostsPage({
   searchParams,
