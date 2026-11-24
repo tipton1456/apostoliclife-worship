@@ -16,6 +16,28 @@ function toggleId(current: string[], id: string) {
   return [...current, id];
 }
 
+function editedCopyName(name: string) {
+  return /-edited\.[^.]+$/i.test(name);
+}
+
+function sourceBase(name: string) {
+  return name.replace(/-edited(?=\.[^.]+$)/i, "");
+}
+
+function photosForPost(images: Photo[], savedNames: string[], sourceNames: string[]) {
+  const saved = new Set(savedNames);
+  const sources = new Set(sourceNames);
+  return images
+    .filter((photo) => saved.has(photo.name) || sources.has(photo.name))
+    .sort((left, right) => {
+      const base = sourceBase(left.name).localeCompare(sourceBase(right.name), "en", { sensitivity: "base" });
+      if (base !== 0) return base;
+      return Number(editedCopyName(left.name)) - Number(editedCopyName(right.name));
+    })
+    .slice(0, SOCIAL_PHOTO_LIMIT)
+    .map((photo) => photo.id);
+}
+
 async function editedBlob(data: string | Blob) {
   if (data instanceof Blob) return data;
   if (data.startsWith("http") || data.startsWith("blob:")) {
@@ -144,8 +166,7 @@ export default function SocialWizard({
     try {
       const images = await loadPhotos();
       setPhotos(images);
-      const saved = new Set(savedNames);
-      setPostIds(images.filter((photo) => saved.has(photo.name)).map((photo) => photo.id).slice(0, SOCIAL_PHOTO_LIMIT));
+      setPostIds(photosForPost(images, savedNames, selected.map((photo) => photo.name)));
       setStep("choose");
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "The edit was saved, but the folder did not reload.");
@@ -198,9 +219,14 @@ export default function SocialWizard({
   }
 
   function photoGrid(selected: string[], onToggle: (id: string) => void) {
+    const ordered = [...photos].sort((left, right) => {
+      const base = sourceBase(left.name).localeCompare(sourceBase(right.name), "en", { sensitivity: "base" });
+      if (base !== 0) return base;
+      return Number(editedCopyName(left.name)) - Number(editedCopyName(right.name));
+    });
     return (
       <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3">
-        {photos.map((photo) => {
+        {ordered.map((photo) => {
           const checked = selected.includes(photo.id);
           const order = selected.indexOf(photo.id);
           return (
@@ -215,7 +241,8 @@ export default function SocialWizard({
               <img src={`/api/photos/thumbnail?path=${encodeURIComponent(photo.path)}`} alt="" className="aspect-square w-full object-cover" />
               <span className="flex items-center justify-between gap-2 px-2 py-2 text-xs">
                 <span className="truncate">{photo.name}</span>
-                {checked ? <span className="font-semibold">{order + 1}</span> : null}
+                {editedCopyName(photo.name) ? <span className="shrink-0 text-[#a9b2c8]">Edited</span> : null}
+                {checked ? <span className="shrink-0 font-semibold">{order + 1}</span> : null}
               </span>
             </button>
           );
@@ -292,7 +319,7 @@ export default function SocialWizard({
       {!loading && photos.length > 0 && step === "choose" ? (
         <section className="mt-2">
           <p className="text-sm text-neutral-300">
-            {postIds.length} of {SOCIAL_PHOTO_LIMIT} selected for the posts and stories.
+            {postIds.length} of {SOCIAL_PHOTO_LIMIT} selected for the posts and stories. Each edited copy sits beside its original. Click a photo to add or remove it.
           </p>
           {photoGrid(postIds, (id) => setPostIds((current) => toggleId(current, id)))}
           <div className="mt-4 flex flex-wrap gap-2">
