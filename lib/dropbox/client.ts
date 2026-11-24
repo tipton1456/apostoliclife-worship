@@ -446,6 +446,32 @@ export async function photoUploadLink(folder: string, filename: string) {
   return { link: result.link, name };
 }
 
+export async function photoOverwriteUploadLink(relativePath: string) {
+  const name = safePhotoName(relativePath.split("/").pop() || "photo.jpg");
+  if (!isUploadablePhoto(name)) {
+    throw new Error("Upload a JPG, PNG, TIFF, GIF, WebP, BMP, or HEIC photo.");
+  }
+
+  const path = relativePhotoPath(resolvePhotoPath(relativePath));
+  const token = await accessToken();
+  const result = await dropboxJson<{ link?: string }>(
+    "https://api.dropboxapi.com/2/files/get_temporary_upload_link",
+    {
+      commit_info: {
+        path: resolvePhotoPath(path),
+        mode: "overwrite",
+        autorename: false,
+        mute: true,
+      },
+      duration: 3600,
+    },
+    token,
+  );
+
+  if (!result.link) throw new Error("Unable to start the upload.");
+  return { link: result.link, path, name };
+}
+
 const MAX_RAW_BYTES = 180 * 1024 * 1024;
 
 function parentFolder(relativePath: string) {

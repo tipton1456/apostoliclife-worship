@@ -4,7 +4,7 @@ import QueueList from "@/app/photos/social/queue/queue-list";
 import WorshipLogo from "@/app/worship-logo";
 import { getCurrentWorshipUser } from "@/lib/worship-auth/users";
 
-export const metadata = { title: "Approval queue" };
+export const metadata = { title: "Social approval" };
 
 export default async function SocialQueuePage() {
   const user = await getCurrentWorshipUser();

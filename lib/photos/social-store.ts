@@ -267,6 +267,34 @@ export async function createSocialSubmission(input: {
   return { id, smsOk, smsError };
 }
 
+const REMOVABLE_STATUSES: SocialStatus[] = ["pending_review", "approved", "rejected", "failed"];
+
+export async function deleteUnpublishedSubmissions(ids: string[]) {
+  const unique = [...new Set(ids.map((id) => id.trim()))].slice(0, 40);
+  if (!unique.length || unique.some((id) => !/^[0-9a-f-]{36}$/i.test(id))) {
+    throw new Error("Choose a post to remove.");
+  }
+
+  const supabase = createAdminClient();
+  const { data, error } = await supabase.from("worship_social_submissions").select("id, status").in("id", unique);
+  if (error) throw error;
+  const rows = data ?? [];
+  if (!rows.length) throw new Error("Those posts are no longer in the queue.");
+  if (rows.some((row) => row.status === "publishing" || row.status === "published")) {
+    throw new Error("A post that is already going out cannot be removed.");
+  }
+
+  const deletable = rows.map((row) => row.id as string);
+  const { data: removed, error: deleteError } = await supabase
+    .from("worship_social_submissions")
+    .delete()
+    .in("id", deletable)
+    .in("status", REMOVABLE_STATUSES)
+    .select("id");
+  if (deleteError) throw deleteError;
+  return { deleted: removed?.length ?? 0 };
+}
+
 export async function listSocialSubmissions() {
   const supabase = createAdminClient();
   const { data, error } = await supabase

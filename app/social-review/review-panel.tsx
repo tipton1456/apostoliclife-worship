@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { editedImageBlob, editPhotoInExpress, fileToBase64 } from "@/app/photos/social/express-editor";
 import { centralInputValue, formatCentral } from "@/lib/photos/central-time";
-import type { SocialDecision, SocialSubmissionView } from "@/lib/photos/social-files";
+import type { SocialDecision, SocialPhotoView, SocialSubmissionView } from "@/lib/photos/social-files";
 
 const STATUS_LABEL: Record<SocialSubmissionView["status"], string> = {
   pending_review: "Waiting for your approval",
@@ -13,11 +14,21 @@ const STATUS_LABEL: Record<SocialSubmissionView["status"], string> = {
   failed: "Posting failed",
 };
 
-export default function ReviewPanel({ endpoint }: { endpoint: string }) {
+export default function ReviewPanel({
+  endpoint,
+  adobeClientId = "",
+  correctionEndpoint = "",
+}: {
+  endpoint: string;
+  adobeClientId?: string;
+  correctionEndpoint?: string;
+}) {
   const [submission, setSubmission] = useState<SocialSubmissionView | null>(null);
   const [caption, setCaption] = useState("");
   const [when, setWhen] = useState("");
   const [decisions, setDecisions] = useState<Record<string, SocialDecision>>({});
+  const [versions, setVersions] = useState<Record<string, number>>({});
+  const [editingId, setEditingId] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState("");
@@ -80,6 +91,74 @@ export default function ReviewPanel({ endpoint }: { endpoint: string }) {
     else setNotice("Saved.");
   }
 
+  async function correctPhoto(photo: SocialPhotoView) {
+    if (!submission || !adobeClientId || !correctionEndpoint || locked || editingId || busy) return;
+    setEditingId(photo.id);
+    setError("");
+    setNotice("");
+    try {
+      const preview = await fetch(`${endpoint}?photo=${encodeURIComponent(photo.id)}&edit=1`, { cache: "no-store" });
+      if (!preview.ok) throw new Error(`Unable to open ${photo.fileName}.`);
+      const base64 = await fileToBase64(await preview.blob());
+      await editPhotoInExpress({
+        clientId: adobeClientId,
+        base64,
+        saveLabel: "Save correction",
+        onSave: async (data) => {
+          const blob = await editedImageBlob(data);
+          const linkResponse = await fetch(correctionEndpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ photoId: photo.id }),
+          });
+          const linkBody = (await linkResponse.json().catch(() => null)) as { link?: string; error?: string } | null;
+          if (!linkResponse.ok || !linkBody?.link) throw new Error(linkBody?.error || "Unable to save the correction.");
+          const upload = await fetch(linkBody.link, {
+            method: "POST",
+            headers: { "Content-Type": "application/octet-stream" },
+            body: blob,
+          });
+          if (!upload.ok) throw new Error("Dropbox did not accept the correction.");
+          const saved = (await upload.json().catch(() => null)) as {
+            id?: string;
+            name?: string;
+            path_display?: string;
+            path_lower?: string;
+          } | null;
+          const saveResponse = await fetch(correctionEndpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              photoId: photo.id,
+              dropboxId: saved?.id || "",
+              path: saved?.path_display || saved?.path_lower || "",
+              fileName: saved?.name || "",
+            }),
+          });
+          const savedBody = (await saveResponse.json().catch(() => null)) as { submission?: SocialSubmissionView; error?: string } | null;
+          if (!saveResponse.ok || !savedBody?.submission) throw new Error(savedBody?.error || "Unable to update this post.");
+          const nextName = savedBody.submission.photos.find((item) => item.id === photo.id)?.fileName || photo.fileName;
+          setSubmission((current) =>
+            current
+              ? {
+                  ...current,
+                  photos: current.photos.map((item) => (item.id === photo.id ? { ...item, fileName: nextName } : item)),
+                }
+              : current,
+          );
+          setVersions((current) => ({ ...current, [photo.id]: Date.now() }));
+          setNotice("This post now uses the corrected photo. You can approve it when you are ready.");
+        },
+      });
+    } catch (editError) {
+      if (!(editError instanceof Error) || editError.message !== "Editing was cancelled.") {
+        setError(editError instanceof Error ? editError.message : "Unable to edit that photo.");
+      }
+    } finally {
+      setEditingId("");
+    }
+  }
+
   if (!submission && !error) return <p className="mt-8 text-neutral-400">Loading photos…</p>;
 
   return (
@@ -105,7 +184,11 @@ export default function ReviewPanel({ endpoint }: { endpoint: string }) {
             return (
               <article key={photo.id} className="overflow-hidden rounded-2xl border border-white/10 bg-white/5">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={`${endpoint}?photo=${encodeURIComponent(photo.id)}`} alt="" className="aspect-[4/3] w-full object-cover" />
+                <img
+                  src={`${endpoint}?photo=${encodeURIComponent(photo.id)}&v=${versions[photo.id] || 0}`}
+                  alt=""
+                  className="aspect-[4/3] w-full object-cover"
+                />
                 <div className="flex flex-wrap items-center justify-between gap-3 p-4">
                   <div>
                     <p className="text-sm font-semibold">{photo.fileName}</p>
@@ -114,9 +197,19 @@ export default function ReviewPanel({ endpoint }: { endpoint: string }) {
                     ) : null}
                   </div>
                   <div className="flex gap-2">
+                    {adobeClientId && correctionEndpoint ? (
+                      <button
+                        type="button"
+                        disabled={locked || Boolean(editingId) || Boolean(busy)}
+                        className="rounded-xl border border-white/15 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                        onClick={() => void correctPhoto(photo)}
+                      >
+                        {editingId === photo.id ? "Opening…" : "Edit"}
+                      </button>
+                    ) : null}
                     <button
                       type="button"
-                      disabled={locked}
+                      disabled={locked || Boolean(editingId)}
                       className={`rounded-xl px-4 py-2 text-sm font-semibold ${decision === "approved" ? "bg-white text-neutral-950" : "border border-white/15 text-white"}`}
                       onClick={() => setDecisions((current) => ({ ...current, [photo.id]: "approved" }))}
                     >
@@ -124,7 +217,7 @@ export default function ReviewPanel({ endpoint }: { endpoint: string }) {
                     </button>
                     <button
                       type="button"
-                      disabled={locked}
+                      disabled={locked || Boolean(editingId)}
                       className={`rounded-xl px-4 py-2 text-sm font-semibold ${decision === "rejected" ? "bg-red-200 text-red-950" : "border border-white/15 text-white"}`}
                       onClick={() => setDecisions((current) => ({ ...current, [photo.id]: "rejected" }))}
                     >

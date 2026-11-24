@@ -26,7 +26,6 @@ export default async function SocialPostsPage({
         folder={folder}
         photographer={user.firstName}
         adobeClientId={process.env.ADOBE_EXPRESS_CLIENT_ID || ""}
-        isAdmin={user.accessLevel === "admin"}
       />
     </main>
   );

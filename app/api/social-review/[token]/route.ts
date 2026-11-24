@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { photoReviewImage } from "@/lib/dropbox/client";
+import { photoPreview, photoReviewImage } from "@/lib/dropbox/client";
 import { patchSubmission, submissionJson } from "@/lib/photos/social-review";
 import { getReviewPhotoPath, getSubmissionByToken } from "@/lib/photos/social-store";
 
@@ -15,11 +15,12 @@ export async function GET(request: NextRequest, context: { params: Promise<{ tok
     if (photoId) {
       const path = await getReviewPhotoPath(token, photoId);
       if (!path) return new NextResponse(null, { status: 404 });
-      const bytes = await photoReviewImage(path);
+      const edit = request.nextUrl.searchParams.get("edit") === "1";
+      const bytes = edit ? await photoPreview(path) : await photoReviewImage(path);
       return new NextResponse(new Uint8Array(bytes), {
         headers: {
           "Content-Type": "image/jpeg",
-          "Cache-Control": "private, max-age=300",
+          "Cache-Control": edit ? "private, no-store" : "private, max-age=300",
         },
       });
     }

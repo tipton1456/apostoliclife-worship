@@ -11,7 +11,11 @@ export default async function SocialReviewPage({ params }: { params: Promise<{ t
       <header className="mx-auto mb-6 w-full max-w-3xl">
         <WorshipLogo href="/home" className="h-9 w-auto" />
       </header>
-      <ReviewPanel endpoint={`/api/social-review/${encodeURIComponent(token)}`} />
+      <ReviewPanel
+        endpoint={`/api/social-review/${encodeURIComponent(token)}`}
+        adobeClientId={process.env.ADOBE_EXPRESS_CLIENT_ID || ""}
+        correctionEndpoint={`/api/social-review/${encodeURIComponent(token)}/correction`}
+      />
     </main>
   );
 }

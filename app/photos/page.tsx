@@ -8,7 +8,7 @@ export const metadata = {
 };
 
 export default async function PhotosPage() {
-  await requireWorshipFeature("photos", "/photos");
+  const user = await requireWorshipFeature("photos", "/photos");
 
   return (
     <main className="flex h-[100dvh] flex-col overflow-hidden bg-black text-white">
@@ -26,7 +26,7 @@ export default async function PhotosPage() {
           Menu
         </Link>
       </header>
-      <PhotosView />
+      <PhotosView isAdmin={user.accessLevel === "admin"} />
     </main>
   );
 }

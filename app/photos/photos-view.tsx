@@ -56,7 +56,7 @@ function galleryTitle(mode: PhotoBrowserMode, rootName: string) {
   return mode.path.slice(mode.path.lastIndexOf("/") + 1);
 }
 
-export default function PhotosView() {
+export default function PhotosView({ isAdmin = false }: { isAdmin?: boolean }) {
   const [stats, setStats] = useState<FolderStat[]>([]);
   const [rootName, setRootName] = useState("Photos");
   const [indexedAt, setIndexedAt] = useState<string | null>(null);
@@ -685,6 +685,14 @@ export default function PhotosView() {
               >
                 Social posts
               </Link>
+              {isAdmin ? (
+                <Link
+                  href="/photos/social/queue"
+                  className="rounded-xl border border-white/15 px-4 py-2 text-sm font-semibold text-white hover:bg-white/5"
+                >
+                  Social approval
+                </Link>
+              ) : null}
               <button
                 type="button"
                 className="rounded-xl border border-white/15 px-4 py-2 text-sm font-semibold text-white hover:bg-white/5"

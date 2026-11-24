@@ -85,6 +85,20 @@ async function editorFor(clientId: string) {
   return editorPromise;
 }
 
+export async function editedImageBlob(data: string | Blob) {
+  if (data instanceof Blob) return data;
+  if (data.startsWith("http") || data.startsWith("blob:")) {
+    const response = await fetch(data);
+    if (!response.ok) throw new Error("Unable to read the edited image.");
+    return response.blob();
+  }
+  const cleaned = data.replace(/^data:image\/\w+;base64,/, "");
+  const binary = atob(cleaned);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+  return new Blob([bytes], { type: "image/jpeg" });
+}
+
 export async function fileToBase64(file: Blob) {
   const bytes = new Uint8Array(await file.arrayBuffer());
   let binary = "";
@@ -98,6 +112,7 @@ export async function fileToBase64(file: Blob) {
 export async function editPhotoInExpress(options: {
   clientId: string;
   base64: string;
+  saveLabel?: string;
   onSave: (data: string | Blob) => Promise<void>;
 }) {
   const editor = await editorFor(options.clientId);
@@ -123,17 +138,21 @@ export async function editPhotoInExpress(options: {
           onCancel: () => finish(new Error("Editing was cancelled.")),
           onError: (error: unknown) => finish(new Error(adobeErrorMessage(error))),
           onPublish: async (_intent: string, params: PublishParams) => {
-            const data = params.asset?.[0]?.data;
-            if (!data) throw new Error("Adobe Express did not return an image.");
-            await options.onSave(data);
-            finish();
+            try {
+              const data = params.asset?.[0]?.data;
+              if (!data) throw new Error("Adobe Express did not return an image.");
+              await options.onSave(data);
+              finish();
+            } catch (error) {
+              finish(error instanceof Error ? error : new Error("Unable to save the edited photo."));
+            }
           },
         },
       },
       [
         {
           id: "save-worship",
-          label: "Save to Photos",
+          label: options.saveLabel || "Save to Photos",
           action: {
             target: "publish",
             outputType: "base64",

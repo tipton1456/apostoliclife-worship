@@ -20,7 +20,11 @@ export default async function AdminReviewPage({ params }: { params: Promise<{ id
           Queue
         </Link>
       </header>
-      <ReviewPanel endpoint={`/api/photos/social/queue/${id}`} />
+      <ReviewPanel
+        endpoint={`/api/photos/social/queue/${id}`}
+        adobeClientId={process.env.ADOBE_EXPRESS_CLIENT_ID || ""}
+        correctionEndpoint={`/api/photos/social/queue/${id}/correction`}
+      />
     </main>
   );
 }

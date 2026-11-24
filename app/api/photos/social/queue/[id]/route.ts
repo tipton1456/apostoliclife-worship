@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { photoReviewImage } from "@/lib/dropbox/client";
+import { photoPreview, photoReviewImage } from "@/lib/dropbox/client";
 import { patchSubmission, submissionJson } from "@/lib/photos/social-review";
 import { getSubmissionById } from "@/lib/photos/social-store";
 import { getCurrentWorshipUser } from "@/lib/worship-auth/users";
@@ -25,9 +25,13 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
     if (photoId) {
       const path = submission?.photos.find((photo) => photo.id === photoId)?.path;
       if (!path) return new NextResponse(null, { status: 404 });
-      const bytes = await photoReviewImage(path);
+      const edit = request.nextUrl.searchParams.get("edit") === "1";
+      const bytes = edit ? await photoPreview(path) : await photoReviewImage(path);
       return new NextResponse(new Uint8Array(bytes), {
-        headers: { "Content-Type": "image/jpeg", "Cache-Control": "private, max-age=300" },
+        headers: {
+          "Content-Type": "image/jpeg",
+          "Cache-Control": edit ? "private, no-store" : "private, max-age=300",
+        },
       });
     }
     return submissionJson(submission, "That photo set could not be found.");

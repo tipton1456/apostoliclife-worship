@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { editPhotoInExpress, fileToBase64 } from "@/app/photos/social/express-editor";
+import { editedImageBlob, editPhotoInExpress, fileToBase64 } from "@/app/photos/social/express-editor";
 import { defaultScheduleInput } from "@/lib/photos/central-time";
 import { isSocialPhotoName, SOCIAL_PHOTO_LIMIT } from "@/lib/photos/social-files";
 
@@ -38,30 +38,14 @@ function photosForPost(images: Photo[], savedNames: string[], sourceNames: strin
     .map((photo) => photo.id);
 }
 
-async function editedBlob(data: string | Blob) {
-  if (data instanceof Blob) return data;
-  if (data.startsWith("http") || data.startsWith("blob:")) {
-    const response = await fetch(data);
-    if (!response.ok) throw new Error("Unable to read the edited image.");
-    return response.blob();
-  }
-  const cleaned = data.replace(/^data:image\/\w+;base64,/, "");
-  const binary = atob(cleaned);
-  const bytes = new Uint8Array(binary.length);
-  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
-  return new Blob([bytes], { type: "image/jpeg" });
-}
-
 export default function SocialWizard({
   folder,
   photographer,
   adobeClientId,
-  isAdmin,
 }: {
   folder: string;
   photographer: string;
   adobeClientId: string;
-  isAdmin: boolean;
 }) {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,7 +59,7 @@ export default function SocialWizard({
   const [helping, setHelping] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [smsNote, setSmsNote] = useState("");
-  const [ready, setReady] = useState({ adobe: Boolean(adobeClientId), ai: false, publishing: false, sms: false });
+  const [ready, setReady] = useState({ adobe: Boolean(adobeClientId), ai: false });
 
   async function loadPhotos() {
     const response = await fetch(`/api/photos?path=${encodeURIComponent(folder)}`, { cache: "no-store" });
@@ -98,8 +82,6 @@ export default function SocialWizard({
           setReady({
             adobe: Boolean(status.adobe || adobeClientId),
             ai: Boolean(status.ai),
-            publishing: Boolean(status.publishing),
-            sms: Boolean(status.sms),
           });
         }
       } catch (loadError) {
@@ -135,7 +117,7 @@ export default function SocialWizard({
           clientId: adobeClientId,
           base64,
           onSave: async (data) => {
-            const blob = await editedBlob(data);
+            const blob = await editedImageBlob(data);
             const baseName = photo.name.replace(/\.[^.]+$/, "");
             const linkResponse = await fetch("/api/photos/upload-link", {
               method: "POST",
@@ -258,27 +240,15 @@ export default function SocialWizard({
           <p className="text-sm text-[#a9b2c8]">{folderName}</p>
           <h1 className="text-2xl font-bold">Social posts</h1>
           <p className="mt-1 max-w-2xl text-sm text-neutral-400">
-            Choose up to {SOCIAL_PHOTO_LIMIT} photos to edit in Adobe Express, then choose up to {SOCIAL_PHOTO_LIMIT} for Facebook and Instagram.
+            Choose up to {SOCIAL_PHOTO_LIMIT} photos to edit in Adobe Express, then choose up to {SOCIAL_PHOTO_LIMIT} to send for the Facebook and Instagram posts.
             {photographer ? ` Signed in as ${photographer}.` : ""}
           </p>
         </div>
-        <div className="flex gap-2">
-          {isAdmin ? (
-            <Link href="/photos/social/queue" className="al-ghost px-4 py-2 text-sm">
-              Approval queue
-            </Link>
-          ) : null}
-          <Link href="/photos" className="al-ghost px-4 py-2 text-sm">
-            Back to photos
-          </Link>
-        </div>
+        <Link href="/photos" className="al-ghost px-4 py-2 text-sm">
+          Back to photos
+        </Link>
       </div>
 
-      {!ready.publishing ? (
-        <p className="mt-4 rounded-xl border border-white/10 px-3 py-2 text-sm text-neutral-300">
-          Facebook and Instagram are not connected yet, so approved posts will wait until that connection is added.
-        </p>
-      ) : null}
       {!ready.adobe && step === "edit" ? (
         <p className="mt-4 rounded-xl border border-white/10 px-3 py-2 text-sm text-neutral-300">
           Adobe Express editing needs an API key from the Adobe Developer Console, saved as ADOBE_EXPRESS_CLIENT_ID. You can still choose photos and send them for approval.
@@ -361,7 +331,7 @@ export default function SocialWizard({
             />
           </label>
           <p className="mt-2 text-sm text-neutral-400">
-            The free site plan checks for due posts once each morning. After you approve a set, it posts on that check, or right away from the approval queue.
+            After this set is approved, it posts at the Central time you chose. The site also checks once each morning for anything that is due.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <button type="button" className="al-ghost px-4 py-3 text-sm" onClick={() => setStep("choose")}>

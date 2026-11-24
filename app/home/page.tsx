@@ -74,6 +74,17 @@ export default async function MenuPage({
           </a>
           {currentUser.accessLevel === "admin" ? (
             <Link
+              href="/photos/social/queue"
+              className="al-card block p-6 transition hover:-translate-y-0.5 hover:border-[#93a9f5]"
+            >
+              <p className="text-lg font-bold text-white">Social approval</p>
+              <p className="mt-2 text-sm leading-6 text-[#a9b2c8]">
+                Review submitted photos, correct one in Adobe Express, or remove a set before it is published.
+              </p>
+            </Link>
+          ) : null}
+          {currentUser.accessLevel === "admin" ? (
+            <Link
               href="/admin/users"
               className="al-card block p-6 transition hover:-translate-y-0.5 hover:border-[#93a9f5]"
             >
